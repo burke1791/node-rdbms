@@ -1,0 +1,32 @@
+{
+  "name": "rdbms",
+  "version": "1.0.0",
+  "description": "A simple RDBMS written in node.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/burke1791/node-rdbms.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/burke1791/node-rdbms/issues"
+  },
+  "homepage": "https://github.com/burke1791/node-rdbms#readme",
+  "devDependencies": {
+    "@babel/core": "^7.18.6",
+    "@babel/plugin-syntax-top-level-await": "^7.14.5",
+    "@babel/preset-env": "^7.18.6",
+    "babel-loader": "^8.2.5",
+    "webpack": "^5.73.0",
+    "webpack-cli": "^4.10.0"
+  },
+  "dependencies": {
+    "express": "^4.18.1"
+  }
+}
