@@ -5,12 +5,6 @@ In this demo project, I am going to store the data "bits" as cleartext in the fi
 
 The database file consists of one or more pages, which have a minimum size of 512 chars and increasing by powers of 2. All pages in the file are the same size.
 
-## Database Header
-
-The DB header exists only on the first page in the database file and contains the following information:
-  - Header size (4 chars) - number of characters the DB header takes up, including the header size chunk
-  - Page size (2 chars) - represented as the exponent in a power of 2 calculation. Min: 09 | Max: 13
-
 ## Page Types
 
 There are two page types in a database file:
