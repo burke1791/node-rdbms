@@ -1,19 +1,16 @@
-import { Char } from '../dataTypes/charTypes';
-import { Int } from '../dataTypes/numbers';
 import { PAGE_SIZE } from '../utilities/constants';
-import Record from './record';
+import { padNumber, padStringTrailing } from '../utilities/helper';
 
 /**
  * @class
  * @param {Number} recordSize 
  */
-function Page(recordSize) {
+function Page() {
 
   this.pageSize = PAGE_SIZE;
-  this.recordSize = recordSize;
   this.recordCount = 0;
+  this.firstFreeData = 0;
   this.data = '';
-  this.nextRecordId = 0;
 
   this.deserializeRow = (recordId) => {
     const recordIndex = recordId * this.recordSize;
@@ -30,6 +27,39 @@ function Page(recordSize) {
     return result;
   }
 
+  this.serializeRow = (personId, age, name) => {
+    let nullBitmapOffset = 62;
+    let nullBitmap = '05';
+
+    if (personId == 'null') {
+      personId = null;
+      nullBitmap += '1';
+      nullBitmapOffset -= 4;
+    }
+
+    if (age == 'null') {
+      age = null;
+      nullBitmap += '1';
+      nullBitmapOffset -= 4;
+    }
+
+    if (name.trim() == 'null') {
+      name = null;
+      nullBitmap += '1';
+      nullBitmapOffset -= 50;
+    }
+
+    let recordText = '';
+
+    recordText += padNumber(nullBitmapOffset, 4);
+    recordText += personId == null ? '' : padNumber(personId, 4);
+    recordText += age == null ? '' : padNumber(age, 4);
+    recordText += name == null ? '' : padStringTrailing(name, 50);
+    recordText += nullBitmap;
+
+    this.data = this.data.substring(0, this.firstFreeData) + recordText
+  }
+
   this.addRecordToPage = (recordId, recordData) => {
     const currentRecordIndex = recordId * this.recordSize;
     const nextRecordIndex = (recordId + 1) * this.recordSize;
@@ -38,16 +68,10 @@ function Page(recordSize) {
   }
 
   this.newRecord = (personId, age, name) => {
-    if (personId == 'null') personId = null;
-    if (age == 'null') age = null;
-    if (name.trim() == 'null') name = null;
-
-    const record = new Record(personId, age, name);
-    record.serializeRecord();
+    this.recordData = this.serializeRow(personId, age, name);
 
     this.addRecordToPage(this.nextRecordId, record.data);
     this.nextRecordId++;
-    this.recordCount++;
   }
 
   this.selectAll = () => {
