@@ -4,7 +4,7 @@ import { program } from 'commander';
 import prompts from 'prompts';
 import Page from '../bufferPool/page';
 
-const data = new Page(58);
+const data = new Page(67);
 
 program.command('start')
        .description('Starts the DB server')

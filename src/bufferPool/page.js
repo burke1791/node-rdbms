@@ -1,6 +1,7 @@
 import { Char } from '../dataTypes/charTypes';
 import { Int } from '../dataTypes/numbers';
 import { PAGE_SIZE } from '../utilities/constants';
+import Record from './record';
 
 /**
  * @class
@@ -16,31 +17,35 @@ function Page(recordSize) {
 
   this.deserializeRow = (recordId) => {
     const recordIndex = recordId * this.recordSize;
-    const record = this.data.substring(recordIndex, recordIndex + this.recordSize);
+    const recordData = this.data.substring(recordIndex, recordIndex + this.recordSize);
 
-    const id = new Int(record.substring(0, 4));
-    const age = new Int(record.substring(4, 8));
-    const name = new Char(record.substring(8, 57));
+    const id = Number(recordData.substring(4, 8));
+    const age = Number(recordData.substring(8, 12));
+    const name = recordData.substring(12, 62);
 
-    const result = `( ${id.value}, ${age.value}, ${name.value} )`;
+    const record = new Record(id, age, name);
+
+    const result = record.deserializeRecord();
 
     return result;
   }
 
-  this.serializeRow = (recordId, personId, age, name) => {
-    const idCol = new Int(personId);
-    const ageCol = new Int(age);
-    const nameCol = new Char(name, 50);
-    const record = `${idCol.getText()}${ageCol.getText()}${nameCol.getText()}`;
-
+  this.addRecordToPage = (recordId, recordData) => {
     const currentRecordIndex = recordId * this.recordSize;
     const nextRecordIndex = (recordId + 1) * this.recordSize;
 
-    this.data = this.data.substring(0, currentRecordIndex) + record + this.data.substring(nextRecordIndex);
+    this.data = this.data.substring(0, currentRecordIndex) + recordData + this.data.substring(nextRecordIndex);
   }
 
   this.newRecord = (personId, age, name) => {
-    this.serializeRow(this.nextRecordId, personId, age, name);
+    if (personId == 'null') personId = null;
+    if (age == 'null') age = null;
+    if (name.trim() == 'null') name = null;
+
+    const record = new Record(personId, age, name);
+    record.serializeRecord();
+
+    this.addRecordToPage(this.nextRecordId, record.data);
     this.nextRecordId++;
     this.recordCount++;
   }

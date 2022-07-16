@@ -6,7 +6,7 @@ import { padStringTrailing } from '../utilities/helper';
 function SqlString(maxLength, isVariable, value) {
   this.maxLength = maxLength;
   this.isVariable = isVariable;
-  this.value = String(value);
+  this.value = (value == null || value == undefined) ? null : String(value);
 
   this.isMatch = (valueToCheck) => {
     return this.value === String(valueToCheck);
@@ -19,6 +19,8 @@ function SqlString(maxLength, isVariable, value) {
   }
 
   this.validateValue = (valueToCheck) => {
+    if (valueToCheck == null || valueToCheck == undefined) return true;
+
     if (valueToCheck.length > this.maxLength) {
       console.log(valueToCheck);
       console.log(this.maxLength);
@@ -27,6 +29,7 @@ function SqlString(maxLength, isVariable, value) {
   }
 
   this.getText = () => {
+    if (this.value == null || this.value == undefined) return null;
     if (!this.isVariable) return padStringTrailing(this.value, this.maxLength);
 
     // variable SqlStrings have a four-char overhead preceeding the actual string itself that indicates how long the string is
