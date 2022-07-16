@@ -6,6 +6,9 @@
  * @returns {String}
  */
  export function padNumber(value, length) {
+  if (isNaN(value) || isNaN(length)) {
+    throw new Error('Inputs must be numbers');
+  }
   const numDigits = value.toString().length;
 
   if (numDigits > length) throw new Error('Number of digits exceeds the allowed length');
@@ -27,6 +30,8 @@
  * @returns {String}
  */
 export function padStringTrailing(value, length) {
+  if (isNaN(length)) throw new Error('length must be a number');
+
   const currentLength = value.length;
 
   if (currentLength > length) throw new Error('String exceeds the maximum length');
