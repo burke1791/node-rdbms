@@ -16,29 +16,34 @@ export function fillInEmptyPageSpace(headerData, recordData, slotArray) {
 /**
  * @function
  * @param {Array<Object>} values 
- * @param {Array<Object>} definitions 
+ * @param {Array<Object>} definitions
+ * @returns {Array<Any>}
  */
 export function getNullBitmapAndNullBitmapOffset(values, definitions) {
   const fixedLengthDefinitions = definitions.filter(def => {
     return !def.isVariable;
   });
 
+  fixedLengthDefinitions.sort((a, b) => a.order - b.order);
+
   const variableLengthDefinitions = definitions.filter(def => {
     return def.isVariable;
   });
+
+  variableLengthDefinitions.sort((a, b) => a.order - b.order);
 
   let nullBitmap = `${padNumber(definitions.length, 2)}`;
   let offset = 4;
 
   for (let fdef of fixedLengthDefinitions) {
-    
-  }
+    const val = values.find(value => value.name.toLowerCase() === fdef.name.toLowerCase());
 
-  for (let val of values) {
-    const col = definitions.find(def => def.name.toLowerCase() === val.name.toLowerCase());
+    if (val == undefined || val == null || val.value == undefined || val.value == null) {
+      nullBitmap += '1';
+    } else {
+      nullBitmap += '0';
 
-    if (col.isVariable) {
-      switch (col.dataType) {
+      switch (fdef.dataType) {
         case 0:
           offset += 1;
           break;
@@ -62,6 +67,18 @@ export function getNullBitmapAndNullBitmapOffset(values, definitions) {
       }
     }
   }
+
+  for (let vdef of variableLengthDefinitions) {
+    const val = values.find(value => value.name.toLowerCase() === vdef.name.toLowerCase());
+
+    if (val == undefined || val == null || val.value == undefined || val.value == null) {
+      nullBitmap += '1';
+    } else {
+      nullBitmap += '0';
+    }
+  }
+
+  return [nullBitmap, offset];
 }
 
 /**
@@ -71,10 +88,10 @@ export function getNullBitmapAndNullBitmapOffset(values, definitions) {
  * @param {Array<Object>} definitions
  * @returns {Boolean}
  */
-export function validateValues(values, definitions) {
-  for (let val of values) {
-    const col = definitions.find(def => def.name.toLowerCase() === val.name.toLowerCase());
-    const isValid = validateDataType(value, col.dataType, col.isNullable, col.maxLength);
+export function validateInsertValues(values, definitions) {
+  for (let def of definitions) {
+    const val = values.find(value => value.name.toLowerCase() === def.name.toLowerCase());
+    const isValid = validateDataType(val.value, def.dataType, def.isNullable, def.maxLength);
   }
 
   return true;
@@ -117,4 +134,33 @@ export function validateDataType(value, dataType, isNullable, maxLength) {
       colVal = new Varchar(value, maxLength);
       return true;
   }
+}
+
+/**
+ * @function
+ * @param {Array<Object>} values
+ * @param {Array<Object>} definitions
+ * @returns {String}
+ */
+export function getVariableOffsetArray(values, definitions) {
+  const variableDefinitions = definitions.filter(def => {
+    return def.isVariable;
+  });
+
+  let offsetArr = padNumber(values.length, 2);
+  let prevOffset = 0;
+
+  for (let vdef of variableDefinitions) {
+    const col = values.find(value => value.name.toLowerCase() === vdef.name.toLowerCase());
+
+    if (col == undefined || col.value == null || col.value == undefined) {
+      offsetArr += padNumber(prevOffset, 4);
+    } else {
+      let offset = col.value.length + prevOffset;
+      offsetArr += padNumber(offset, 4);
+      prevOffset = offset;
+    }
+  }
+
+  return offsetArr;
 }

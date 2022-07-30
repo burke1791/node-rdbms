@@ -1,7 +1,8 @@
+import { Bit, Char, Int, SmallInt, TinyInt, BigInt, Varchar } from '../dataTypes';
 import { EMPTY_SPACE_CHAR, PAGE_SIZE } from '../utilities/constants';
 import { padNumber } from '../utilities/helper';
 import { getVariableColumnLength, getVariableLengthColumnOffset } from './deserializer';
-import { validateValues } from './serializer';
+import { getNullBitmapAndNullBitmapOffset, validateInsertValues } from './serializer';
 
 /**
  * @class
@@ -18,64 +19,74 @@ function Page(tableDefinition) {
   this.slotArray = ''
 
   this.serializeRow = (values) => {
-    validateValues(values, this.columnDefinitions);
+    validateInsertValues(values, this.columnDefinitions);
 
-    // null bitmap and offset
+    const [nullBitmap, nullBitmapOffset] = getNullBitmapAndNullBitmapOffset(values, this.columnDefinitions);
 
-    if (firstName.length > 50) {
-      throw new Error('FirstName field exceeds maximum length');
-    }
-    if (lastName.length > 50) {
-      throw new Error('LastName field exceeds maximum length');
-    }
-
-    let nullBitmapOffset = 12;
-    let nullBitmap = '06';
-    let varOffsetArray = '02'
-
-    if (personId == 'null') {
-      personId = null;
-      nullBitmap += '1';
-      nullBitmapOffset -= 4;
-    } else {
-      nullBitmap += '0';
-    }
-
-    if (age == 'null') {
-      age = null;
-      nullBitmap += '1';
-      nullBitmapOffset -= 4;
-    } else {
-      nullBitmap += '0';
-    }
-
-    if (firstName.trim() == 'null') {
-      firstName = null;
-      nullBitmap += '1';
-      varOffsetArray += '0000';
-    } else {
-      nullBitmap += '0';
-      varOffsetArray += padNumber(firstName.length, 4);
-    }
-
-    if (lastName.trim() == 'null') {
-      lastName = null;
-      nullBitmap += '1';
-      varOffsetArray += padNumber(firstName?.length || 0, 4);
-    } else {
-      nullBitmap += '0';
-      varOffsetArray += padNumber(lastName.length + (firstName?.length || 0), 4);
-    }
+    const variableOffsetArray = getVariableOffsetArray(values, this.columnDefinitions);
 
     let recordText = '';
 
     recordText += padNumber(nullBitmapOffset, 4);
-    recordText += personId == null ? '' : padNumber(personId, 4);
-    recordText += age == null ? '' : padNumber(age, 4);
+    
+    const fixedLengthDefinitions = definitions.filter(def => {
+      return !def.isVariable;
+    });
+  
+    fixedLengthDefinitions.sort((a, b) => a.order - b.order);
+
+    for (let fdef of fixedLengthDefinitions) {
+      const val = values.find(value => value.name.toLowerCase() === fdef.name.toLowerCase());
+
+      let colVal;
+
+      if (val != undefined && val.value != null && val.value != undefined) {
+        switch (fdef.dataType) {
+          case 0:
+            colVal = new TinyInt(val.value);
+            break;
+          case 1:
+            colVal = new SmallInt(val.value);
+            break;
+          case 2:
+            colVal = new Int(val.value);
+            break;
+          case 3:
+            colVal = new BigInt(val.value);
+            break;
+          case 4:
+            colVal = new Bit(val.value);
+            break;
+          case 5:
+            colVal = new Char(val.value);
+            break;
+          default:
+            throw new Error(`Unhandled data type: ${col.dataType} in function getNullBitmapAndNullBitmapOffset`);
+        }
+
+        recordText += colVal.getText();
+      }
+    }
+
     recordText += nullBitmap;
-    recordText += varOffsetArray;
-    if (firstName != null) recordText += firstName;
-    if (lastName != null) recordText += lastName;
+    recordText += variableOffsetArray;
+  
+    const variableLengthDefinitions = definitions.filter(def => {
+      return def.isVariable;
+    });
+  
+    variableLengthDefinitions.sort((a, b) => a.order - b.order);
+
+    for (let vdef of variableLengthDefinitions) {
+      const val = values.find(value => value.name.toLowerCase() === vdef.name.toLowerCase());
+
+      let colVal;
+
+      if (val != undefined && val.value != null && val.value != undefined) {
+        colVal = new Varchar(val.value);
+        recordText += colVal.getText();
+      }
+    }
 
     return recordText;
   }
