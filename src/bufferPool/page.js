@@ -1,20 +1,27 @@
 import { EMPTY_SPACE_CHAR, PAGE_SIZE } from '../utilities/constants';
-import { padNumber, padStringTrailing } from '../utilities/helper';
+import { padNumber } from '../utilities/helper';
 import { getVariableColumnLength, getVariableLengthColumnOffset } from './deserializer';
+import { validateValues } from './serializer';
 
 /**
  * @class
- * @param {Number} recordSize 
+ * @param {Object} tableDefinition
  */
-function Page() {
+function Page(tableDefinition) {
 
+  this.tableName = tableDefinition.name;
+  this.columnDefinitions = tableDefinition.columns;
   this.pageSize = PAGE_SIZE;
   this.recordCount = 0;
   this.firstFreeData = 0;
   this.data = '';
   this.slotArray = ''
 
-  this.serializeRow = (personId, age, firstName, lastName) => {
+  this.serializeRow = (values) => {
+    validateValues(values, this.columnDefinitions);
+
+    // null bitmap and offset
+
     if (firstName.length > 50) {
       throw new Error('FirstName field exceeds maximum length');
     }
@@ -150,8 +157,8 @@ function Page() {
     this.data = this.fillInEmptySpace(allRecordData) + this.slotArray;
   }
 
-  this.newRecord = (personId, age, firstName, lastName) => {
-    const rowData = this.serializeRow(personId, age, firstName, lastName);
+  this.newRecord = (values) => {
+    const rowData = this.serializeRow(values);
 
     this.addRecordToPage(this.firstFreeData, rowData);
   }

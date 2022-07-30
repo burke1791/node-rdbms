@@ -20,6 +20,7 @@ function SqlNumber(charSize, minVal, maxVal, value) {
   }
 
   this.validateValue = (valueToCheck) => {
+    if (isNaN(valueToCheck)) throw new Error('Value is not a number');
     if (valueToCheck < this.minVal || valueToCheck > this.maxVal) {
       throw new Error(`${this.value} exceeds the bounds of this Number data type`);
     }

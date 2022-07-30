@@ -70,3 +70,7 @@ Create Table Person (
   [LastName] Varchar(50)
 )
 ```
+
+## Generic Table Definition
+
+Now is a good time to genericize the code so that it can handle any kind of table definition (with some restrictions not worth mentioning).

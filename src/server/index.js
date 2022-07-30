@@ -4,7 +4,45 @@ import { program } from 'commander';
 import prompts from 'prompts';
 import Page from '../bufferPool/page';
 
-const data = new Page();
+const tableDefinition = {
+  name: 'Employee',
+  columns: [
+    {
+      name: 'EmployeeId',
+      dataType: 2,
+      isVariable: false,
+      isNullable: false,
+      maxLength: null,
+      order: 1
+    },
+    {
+      name: 'Name',
+      dataType: 6,
+      isVariable: true,
+      isNullable: false,
+      maxLength: 50,
+      order: 2
+    },
+    {
+      name: 'Position',
+      dataType: 6,
+      isVariable: true,
+      isNullable: true,
+      maxLength: 30,
+      order: 3
+    },
+    {
+      name: 'Salary',
+      dataType: 3,
+      isVariable: false,
+      isNullable: false,
+      maxLength: null,
+      order: 4
+    }
+  ]
+};
+
+const data = new Page(tableDefinition);
 
 program.command('start')
        .description('Starts the DB server')
