@@ -33,4 +33,17 @@ The slot array is a construct that exists at the end of each page. It is a seque
 
 ## Variable Length Columns
 
+Storing names as a Char(50) is going to waste a lot of space when we start writing data to disk. To solve this, we are going to implement variable length colums. 
 
+In order to support variable length columns, we need to add a construct to the data record similar to the null bitmap: the variable length column offset array. It stores the number of variable length columns in the record, as well as a 4-char pointer for each column that points to the end of its data.
+
+With the addition of variable length columns, the record structure will now follow this pattern:
+
+- null bitmap offset: 4 chars
+- fixed length columns
+- null bitmap: 2 chars + 1 char per column
+- variable length column offset arrap: 2 chars + 4 chars per column
+  - first 2 chars represent the number of variable length columns
+  - each 4-char pointer represents the offset from the end of the variable array to the end of its record
+  - Null columns will still have the 4-char pointer. It will just point to the same spot as the previous pointer
+- variable length columns
