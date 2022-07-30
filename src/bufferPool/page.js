@@ -54,10 +54,10 @@ function Page() {
     if (lastName.trim() == 'null') {
       lastName = null;
       nullBitmap += '1';
-      varOffsetArray += '0000';
+      varOffsetArray += padNumber(firstName?.length || 0, 4);
     } else {
       nullBitmap += '0';
-      varOffsetArray += padNumber(lastName.length + firstName.length, 4);
+      varOffsetArray += padNumber(lastName.length + (firstName?.length || 0), 4);
     }
 
     let recordText = '';
@@ -67,8 +67,8 @@ function Page() {
     recordText += age == null ? '' : padNumber(age, 4);
     recordText += nullBitmap;
     recordText += varOffsetArray;
-    recordText += firstName;
-    recordText += lastName;
+    if (firstName != null) recordText += firstName;
+    if (lastName != null) recordText += lastName;
 
     return recordText;
   }
@@ -87,7 +87,6 @@ function Page() {
     const varOffsetEnd = nullBitmapEnd + 10;
 
     const varOffsetArray = this.data.substring(nullBitmapEnd, varOffsetEnd);
-
     const varOffsetColumns = varOffsetArray.substring(2).match(/[\s\S]{1,4}/g);
 
     const columns = [];
