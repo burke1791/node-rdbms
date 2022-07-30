@@ -14,14 +14,17 @@ function Page() {
   this.data = '';
   this.slotArray = ''
 
-  this.serializeRow = (personId, age, name) => {
-    if (name.length > 50) {
-      throw new Error('Name field exceeds maximum length');
+  this.serializeRow = (personId, age, firstName, lastName) => {
+    if (firstName.length > 50) {
+      throw new Error('FirstName field exceeds maximum length');
+    }
+    if (lastName.length > 50) {
+      throw new Error('LastName field exceeds maximum length');
     }
 
     let nullBitmapOffset = 12;
-    let nullBitmap = '05';
-    let varOffsetArray = '01'
+    let nullBitmap = '06';
+    let varOffsetArray = '02'
 
     if (personId == 'null') {
       personId = null;
@@ -39,13 +42,22 @@ function Page() {
       nullBitmap += '0';
     }
 
-    if (name.trim() == 'null') {
-      name = null;
+    if (firstName.trim() == 'null') {
+      firstName = null;
       nullBitmap += '1';
       varOffsetArray += '0000';
     } else {
       nullBitmap += '0';
-      varOffsetArray += padNumber(name.length, 4);
+      varOffsetArray += padNumber(firstName.length, 4);
+    }
+
+    if (lastName.trim() == 'null') {
+      lastName = null;
+      nullBitmap += '1';
+      varOffsetArray += '0000';
+    } else {
+      nullBitmap += '0';
+      varOffsetArray += padNumber(lastName.length + firstName.length, 4);
     }
 
     let recordText = '';
@@ -55,7 +67,8 @@ function Page() {
     recordText += age == null ? '' : padNumber(age, 4);
     recordText += nullBitmap;
     recordText += varOffsetArray;
-    recordText += name;
+    recordText += firstName;
+    recordText += lastName;
 
     return recordText;
   }
@@ -66,18 +79,16 @@ function Page() {
     const nullBitmapOffset = this.data.substring(recordIndex, recordIndex + 4);
 
     const nullBitmapStart = recordIndex + Number(nullBitmapOffset);
-    const nullBitmapEnd = nullBitmapStart + 5;
+    const nullBitmapEnd = nullBitmapStart + 6;
 
     const nullBitmap = this.data.substring(nullBitmapStart, nullBitmapEnd);
     const nullBitmapColumns = nullBitmap.substring(2).split('');
 
-    const varOffsetEnd = nullBitmapEnd + 6;
+    const varOffsetEnd = nullBitmapEnd + 10;
 
     const varOffsetArray = this.data.substring(nullBitmapEnd, varOffsetEnd);
-    console.log(varOffsetArray);
 
     const varOffsetColumns = varOffsetArray.substring(2).match(/[\s\S]{1,4}/g);
-    console.log(varOffsetColumns);
 
     const columns = [];
     let colIndex = recordIndex + 4;
@@ -89,8 +100,9 @@ function Page() {
       } else if (colNum > numFixed) {
         // variable length columns
         const offset = getVariableLengthColumnOffset(colNum - numFixed, varOffsetColumns);
-        const colStart = varOffsetEnd;
-        const colLength = getVariableColumnLength(colNum - numFixed, varOffsetColumns);
+        const colLength = getVariableColumnLength(colNum - numFixed, 
+        varOffsetColumns);
+        const colStart = varOffsetEnd + offset - colLength;
         const col = this.data.substring(colStart, colStart + colLength);
         columns.push(col);
       } else {
@@ -139,8 +151,8 @@ function Page() {
     this.data = this.fillInEmptySpace(allRecordData) + this.slotArray;
   }
 
-  this.newRecord = (personId, age, name) => {
-    const rowData = this.serializeRow(personId, age, name);
+  this.newRecord = (personId, age, firstName, lastName) => {
+    const rowData = this.serializeRow(personId, age, firstName, lastName);
 
     this.addRecordToPage(this.firstFreeData, rowData);
   }

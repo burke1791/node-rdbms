@@ -37,7 +37,7 @@ async function start() {
         });
         break;
       case 'insert':
-        data.newRecord(parsedQuery[1], parsedQuery[2], parsedQuery[3]);
+        data.newRecord(parsedQuery[1], parsedQuery[2], parsedQuery[3], parsedQuery[4]);
         break;
       default:
         throw new Error('Unhandled query: ' + parsedQuery[0]);

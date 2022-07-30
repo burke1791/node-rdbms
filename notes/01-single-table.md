@@ -57,3 +57,16 @@ Create Table Person (
   [Name] Varchar(50)
 )
 ```
+
+## Multiple Variable Length Columns
+
+To test the variable length implementation, I am going to adjust the table DDL to include two variable length columns:
+
+```
+Create Table Person (
+  [PersonId] Int,
+  [Age] Int,
+  [FirstName] Varchar(50),
+  [LastName] Varchar(50)
+)
+```
