@@ -1,5 +1,6 @@
 import { EMPTY_SPACE_CHAR, PAGE_SIZE } from '../utilities/constants';
 import { padNumber, padStringTrailing } from '../utilities/helper';
+import { getVariableColumnLength, getVariableLengthColumnOffset } from './deserializer';
 
 /**
  * @class
@@ -14,8 +15,13 @@ function Page() {
   this.slotArray = ''
 
   this.serializeRow = (personId, age, name) => {
-    let nullBitmapOffset = 62;
+    if (name.length > 50) {
+      throw new Error('Name field exceeds maximum length');
+    }
+
+    let nullBitmapOffset = 12;
     let nullBitmap = '05';
+    let varOffsetArray = '01'
 
     if (personId == 'null') {
       personId = null;
@@ -36,9 +42,10 @@ function Page() {
     if (name.trim() == 'null') {
       name = null;
       nullBitmap += '1';
-      nullBitmapOffset -= 50;
+      varOffsetArray += '0000';
     } else {
       nullBitmap += '0';
+      varOffsetArray += padNumber(name.length, 4);
     }
 
     let recordText = '';
@@ -46,36 +53,54 @@ function Page() {
     recordText += padNumber(nullBitmapOffset, 4);
     recordText += personId == null ? '' : padNumber(personId, 4);
     recordText += age == null ? '' : padNumber(age, 4);
-    recordText += name == null ? '' : padStringTrailing(name, 50);
     recordText += nullBitmap;
+    recordText += varOffsetArray;
+    recordText += name;
 
     return recordText;
   }
 
   this.deserializeRow = (recordIndex) => {
+    const numFixed = 2;
+
     const nullBitmapOffset = this.data.substring(recordIndex, recordIndex + 4);
-    console.log(nullBitmapOffset);
-    const nullBitmap = this.data.substring(recordIndex + Number(nullBitmapOffset), recordIndex + Number(nullBitmapOffset) + 5);
-    console.log(nullBitmap);
+
+    const nullBitmapStart = recordIndex + Number(nullBitmapOffset);
+    const nullBitmapEnd = nullBitmapStart + 5;
+
+    const nullBitmap = this.data.substring(nullBitmapStart, nullBitmapEnd);
     const nullBitmapColumns = nullBitmap.substring(2).split('');
+
+    const varOffsetEnd = nullBitmapEnd + 6;
+
+    const varOffsetArray = this.data.substring(nullBitmapEnd, varOffsetEnd);
+    console.log(varOffsetArray);
+
+    const varOffsetColumns = varOffsetArray.substring(2).match(/[\s\S]{1,4}/g);
+    console.log(varOffsetColumns);
 
     const columns = [];
     let colIndex = recordIndex + 4;
+    let colNum = 1;
 
     for (let i = 0; i < nullBitmapColumns.length; i++) {
-      if (nullBitmapColumns[i] == '1') return null;
-
-      if (i == 2) {
-        const col = this.data.substring(colIndex, colIndex + 50);
-        console.log(col);
+      if (nullBitmapColumns[i] == '1') {
+        columns.push('NULL');
+      } else if (colNum > numFixed) {
+        // variable length columns
+        const offset = getVariableLengthColumnOffset(colNum - numFixed, varOffsetColumns);
+        const colStart = varOffsetEnd;
+        const colLength = getVariableColumnLength(colNum - numFixed, varOffsetColumns);
+        const col = this.data.substring(colStart, colStart + colLength);
         columns.push(col);
-        colIndex += 50;
       } else {
+        // fixed length columns
         const col = this.data.substring(colIndex, colIndex + 4);
-        console.log(col);
         columns.push(Number(col));
         colIndex += 4;
       }
+
+      colNum++;
     }
 
     let result = '( ';
@@ -111,7 +136,7 @@ function Page() {
 
     this.slotArray = padNumber(newRecordIndex, 4) + this.slotArray;
 
-    this.data = this.fillInEmptySpace(allRecordData);
+    this.data = this.fillInEmptySpace(allRecordData) + this.slotArray;
   }
 
   this.newRecord = (personId, age, name) => {

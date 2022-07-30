@@ -42,8 +42,18 @@ With the addition of variable length columns, the record structure will now foll
 - null bitmap offset: 4 chars
 - fixed length columns
 - null bitmap: 2 chars + 1 char per column
-- variable length column offset arrap: 2 chars + 4 chars per column
+- variable length column offset array: 2 chars + 4 chars per column
   - first 2 chars represent the number of variable length columns
   - each 4-char pointer represents the offset from the end of the variable array to the end of its record
   - Null columns will still have the 4-char pointer. It will just point to the same spot as the previous pointer
 - variable length columns
+
+Now our new table definition will be:
+
+```
+Create Table Person (
+  [PersonId] Int,
+  [Age] Int,
+  [Name] Varchar(50)
+)
+```
