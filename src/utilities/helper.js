@@ -73,3 +73,25 @@ export function pad(value, length, alignment) {
 
   return str;
 }
+
+/**
+ * @function
+ * @param {String} header
+ * @param {String} [recordData]
+ * @param {String} [slotArray]
+ * @returns {String}
+ */
+export function fillInEmptyPageSpace(header, recordData = '', slotArray = '') {
+  let length = header.length + recordData.length + slotArray.length;
+
+  if (length > PAGE_SIZE) throw new Error('Page cannot exceed ' + PAGE_SIZE + ' chars');
+
+  let text = header + recordData;
+
+  while (length < PAGE_SIZE) {
+    text = text + EMPTY_SPACE_CHAR;
+    length = text.length + slotArray.length;
+  }
+
+  return text;
+}

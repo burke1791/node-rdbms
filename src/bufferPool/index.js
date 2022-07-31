@@ -1,6 +1,7 @@
 import { flushPageToDisk, readPageFromDisk } from '../storageEngine';
 import { getHeaderValue } from './deserializer';
 import Page from './page';
+import { generateBlankPage } from './serializer';
 
 function BufferPool() {
 
@@ -9,7 +10,13 @@ function BufferPool() {
   this.loadPageIntoMemory = async (pageId, tableDefinition) => {
     const pageData = await readPageFromDisk(1, pageId);
     const page = new Page(tableDefinition);
-    page.initPageFromDisk(pageData);
+
+    if (pageData) {
+      page.initPageFromDisk(pageData);
+    } else {
+      const blankPage = generateBlankPage(1, pageId, 1);
+      page.initPageFromDisk(blankPage);
+    }
   }
 
   this.flushPageToDisk = async (pageId) => {

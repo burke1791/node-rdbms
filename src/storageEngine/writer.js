@@ -1,5 +1,6 @@
 import { PAGE_SIZE } from '../utilities/constants';
 import { readFile, writeFile } from 'fs/promises';
+import path from 'path';
 
 /**
  * @function
@@ -11,7 +12,7 @@ import { readFile, writeFile } from 'fs/promises';
 export async function flushPageToDisk(fileId, pageId, data) {
   if (data.length != PAGE_SIZE) throw new Error('Pages must be exactly ' + PAGE_SIZE + ' characters long');
 
-  const filename = `data/${fileId}.ndb`;
+  const filename = path.resolve(__dirname, `data/${fileId}.ndb`);
 
   try {
     const file = await readFile(filename, { encoding: 'utf-8' });

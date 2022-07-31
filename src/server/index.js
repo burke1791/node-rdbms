@@ -58,7 +58,7 @@ const testTable = {
   ]
 }
 
-const tableDefinition = employeeTable
+const tableDefinition = testTable
 
 const data = new Page(tableDefinition);
 const buffer = new BufferPool()
@@ -72,6 +72,7 @@ program.parse();
 async function start() {
   console.log('Starting DB Server...');
 
+  // loading the first DB page into memory at startup
   buffer.loadPageIntoMemory(1, tableDefinition);
   
   while (true) {

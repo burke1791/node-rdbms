@@ -180,7 +180,7 @@ export function getVariableOffsetArray(values, definitions) {
  */
 export function updatePageHeader(pageType, changes, header = '') {
   if (header == '' || header == undefined || header == null) {
-    header = generateNewPageHeader(pageType);
+    header = generateNewPageHeader({ pageType });
   }
 
   changes.forEach(change => {
@@ -190,17 +190,18 @@ export function updatePageHeader(pageType, changes, header = '') {
   return header;
 }
 
-function generateNewPageHeader(pageType) {
-  const fileId = padNumber(1, 2);
-  const pageId = padNumber(1, 4);
-  const pageLevel = padNumber(0, 2);
-  const prevPageId = padNumber(0, 4);
-  const nextPageId = padNumber(0, 4);
-  const recordCount = padNumber(0, 4);
-  const freeCount = padNumber(0, 4);
-  const reservedCount = padNumber(0, 4);
-  const firstFreeData = padNumber(0, 4);
-
+function generateNewPageHeader({
+  pageType,
+  fileId = 1,
+  pageId = 1,
+  pageLevel = 0,
+  prevPageId = 0,
+  nextPageId = 0,
+  recordCount = 0,
+  freeCount = 0,
+  reservedCount = 0,
+  firstFreeData = 0
+}) {
   return `${fileId}${pageId}${pageType}${pageLevel}${prevPageId}${nextPageId}${recordCount}${freeCount}${reservedCount}${firstFreeData}`;
 }
 
@@ -242,4 +243,17 @@ function updateHeaderValue(name, newValue, header) {
     default:
       throw new Error('Unhandled page header update type: ' + name);
   }
+}
+
+/**
+ * @function
+ * @param {Number} fileId 
+ * @param {Number} pageId 
+ * @param {Number} pageType 
+ * @returns {String}
+ */
+export function generateBlankPage(fileId, pageId, pageType) {
+  const header = generateNewPageHeader({ pageType, fileId, pageId });
+  const data = fillInEmptyPageSpace(header);
+  return data;
 }

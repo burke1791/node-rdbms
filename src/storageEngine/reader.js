@@ -1,4 +1,5 @@
 import { readFile } from 'fs/promises';
+import path from 'path';
 import { PAGE_SIZE } from '../utilities/constants';
 
 /**
@@ -8,7 +9,7 @@ import { PAGE_SIZE } from '../utilities/constants';
  * @returns {String}
  */
 export async function readPageFromDisk(fileId, pageId) {
-  const fileName = `data/${fileId}.ndb`;
+  const fileName = path.resolve(__dirname, `data/${fileId}.ndb`);
 
   try {
     const data = await readFile(fileName, { encoding: 'utf-8' });
