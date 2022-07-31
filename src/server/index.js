@@ -90,7 +90,8 @@ function transformInsertInput(query) {
 
   for (let i = 1; i < parsedQuery.length; i++) {
     const name = tableDefinition.columns[i - 1].name;
-    const value = parsedQuery[i];
+    let value = parsedQuery[i];
+    if (value.trim().toLowerCase() == 'null') value = null;
 
     values.push({ name: name, value: value });
   }

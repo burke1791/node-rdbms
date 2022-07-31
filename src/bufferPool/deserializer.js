@@ -112,6 +112,17 @@ export function getFixedLengthColumnValue(colNum, fixedDefinitions, data) {
   };
 }
 
+export function getFixedLengthNullValue(colNum, fixedDefinitions) {
+  const colIndex = colNum - 1;
+  const { name, order } = fixedDefinitions[colIndex];
+
+  return {
+    name: name,
+    value: 'NULL',
+    order: order
+  };
+}
+
 export function getVariableLengthColumnValue(colNum, variableDefinitions, data) {
   const colIndex = colNum - 1;
   const { name, order } = variableDefinitions[colIndex];
@@ -119,6 +130,17 @@ export function getVariableLengthColumnValue(colNum, variableDefinitions, data) 
   return {
     name: name,
     value: data,
+    order: order
+  };
+}
+
+export function getVariableLengthNullValue(colNum, variableDefinitions) {
+  const colIndex = colNum - 1;
+  const { name, order } = variableDefinitions[colIndex];
+
+  return {
+    name: name,
+    value: 'NULL',
     order: order
   };
 }

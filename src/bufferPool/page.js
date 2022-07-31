@@ -1,7 +1,7 @@
 import { Bit, Char, Int, SmallInt, TinyInt, BigInt, Varchar } from '../dataTypes';
 import { EMPTY_SPACE_CHAR, PAGE_SIZE } from '../utilities/constants';
 import { padNumber } from '../utilities/helper';
-import { getFixedColumnValueIndexes, getFixedLengthColumnValue, getVariableColumnLength, getVariableLengthColumnOffset, getVariableLengthColumnValue } from './deserializer';
+import { getFixedColumnValueIndexes, getFixedLengthColumnValue, getFixedLengthNullValue, getVariableColumnLength, getVariableLengthColumnOffset, getVariableLengthColumnValue, getVariableLengthNullValue } from './deserializer';
 import { getNullBitmapAndNullBitmapOffset, validateInsertValues, getVariableOffsetArray } from './serializer';
 
 /**
@@ -121,8 +121,12 @@ function Page(tableDefinition) {
     let colNum = 1;
 
     for (let i = 0; i < nullBitmapColumns.length; i++) {
-      if (nullBitmapColumns[i] == '1') {
-        columns.push('NULL');
+      if (nullBitmapColumns[i] == '1' && colNum > numFixed) {
+        const val = getVariableLengthNullValue(colNum - numFixed, variableLengthDefinitions);
+        columns.push(val);
+      } else if (nullBitmapColumns[i] == '1') {
+        const val = getFixedLengthNullValue(colNum, fixedLengthDefinitions);
+        columns.push(val);
       } else if (colNum > numFixed) {
         // variable length columns
         const offset = getVariableLengthColumnOffset(colNum - numFixed, varOffsetColumns);
