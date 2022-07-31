@@ -1,5 +1,5 @@
 import { Bit, Char, Varchar } from "../dataTypes";
-import { Int, SmallInt, TinyInt } from "../dataTypes/numbers";
+import { Int, SmallInt, TinyInt, BigInt } from "../dataTypes/numbers";
 import { padNumber } from "../utilities/helper";
 
 /**
@@ -32,7 +32,7 @@ export function getNullBitmapAndNullBitmapOffset(values, definitions) {
 
   variableLengthDefinitions.sort((a, b) => a.order - b.order);
 
-  let nullBitmap = `${padNumber(definitions.length, 2)}`;
+  let nullBitmap = `${padNumber(definitions.length + 2, 2)}`;
   let offset = 4;
 
   for (let fdef of fixedLengthDefinitions) {
@@ -147,7 +147,7 @@ export function getVariableOffsetArray(values, definitions) {
     return def.isVariable;
   });
 
-  let offsetArr = padNumber(values.length, 2);
+  let offsetArr = padNumber(variableDefinitions.length, 2);
   let prevOffset = 0;
 
   for (let vdef of variableDefinitions) {

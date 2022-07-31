@@ -44,3 +44,30 @@ export function padStringTrailing(value, length) {
 
   return str;
 }
+
+/**
+ * @function
+ * @param {String|Number} value 
+ * @param {Number} length 
+ * @param {(left|right)} alignment 
+ */
+export function pad(value, length, alignment) {
+  const size = value.toString().length;
+  if (size > length) throw new Error('Number of digits exceeds the allowed length');
+
+  let str = '' + value;
+
+  if (alignment === 'right') {
+    while (str.length < length) {
+      str = ' ' + str;
+    }
+  } else if (alignment === 'left') {
+    while (str.length < length) {
+      str = str + ' ';
+    }
+  } else {
+    throw new Error(`Unhandled alignment: ${alignment}`);
+  }
+
+  return str;
+}

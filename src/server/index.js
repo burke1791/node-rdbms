@@ -3,6 +3,7 @@
 import { program } from 'commander';
 import prompts from 'prompts';
 import Page from '../bufferPool/page';
+import { pad } from '../utilities/helper';
 
 const tableDefinition = {
   name: 'Employee',
@@ -70,15 +71,114 @@ async function start() {
     switch (parsedQuery[0]) {
       case 'select':
         const records = data.selectAll();
-        records.forEach(record => {
-          console.log(record);
-        });
+        console.log(records);
+        displayRecords(records);
         break;
       case 'insert':
-        data.newRecord(parsedQuery[1], parsedQuery[2], parsedQuery[3], parsedQuery[4]);
+        const values = transformInsertInput(response.query);
+        data.newRecord(values);
         break;
       default:
         throw new Error('Unhandled query: ' + parsedQuery[0]);
     }
   }
+}
+
+function transformInsertInput(query) {
+  const parsedQuery = query.split(' ');
+  const values = [];
+
+  for (let i = 1; i < parsedQuery.length; i++) {
+    const name = tableDefinition.columns[i - 1].name;
+    const value = parsedQuery[i];
+
+    values.push({ name: name, value: value });
+  }
+
+  return values;
+}
+
+function displayRecords(resultset) {
+  const resultMetadata = {};
+  const firstRecord = resultset[0];
+  const numRecords = resultset.length;
+  const numRecordsDigitCount = numDigits(numRecords);
+
+  firstRecord.forEach(col => {
+    resultMetadata[col.name] = {
+      order: col.order,
+      length: col.name.length
+    };
+  });
+
+  resultset.forEach(row => {
+    row.forEach(col => {
+      const valueSize = String(col.value).length;
+
+      if (resultMetadata[col.name].length < valueSize) {
+        resultMetadata[col.name].length = valueSize;
+      }
+    });
+  });
+
+  let output = '';
+  output += constructOutputCell('', numRecordsDigitCount, 'right', true);
+
+  // construct the header output row
+  firstRecord.forEach(col => {
+    output += constructOutputCell(col.name, resultMetadata[col.name].length, 'left', true);
+  });
+
+  console.log(output);
+
+  // Print a row of hyphens to separate the headers from the data
+  const outputLength = output.length;
+
+  output = '-'.repeat(outputLength);
+  console.log(output);
+
+  resultset.forEach((row, ind) => {
+    let output = '';
+    output += constructOutputCell(ind + 1, numRecordsDigitCount, 'right', true);
+    row.forEach(col => {
+      let alignment = 'left';
+
+      if (typeof col.value == 'number') {
+        alignment = 'right';
+      }
+
+      output += constructOutputCell(col.value, resultMetadata[col.name].length, alignment, true);
+    });
+
+    console.log(output);
+  });
+}
+
+function numDigits(num, count = 0) {
+  if(num){
+    return numDigits(Math.floor(num / 10), ++count);
+  };
+
+  return count;
+};
+
+/**
+ * @function
+ * @param {Any} value 
+ * @param {Number} size 
+ * @param {(left|right)} alignment 
+ * @param {Boolean} padding 
+ */
+function constructOutputCell(value, size, alignment, padding) {
+  let text = '';
+  
+  text = pad(value, size, alignment);
+
+  if (padding) {
+    text = ' ' + text + ' |';
+  } else {
+    text = text + '|';
+  }
+
+  return text;
 }

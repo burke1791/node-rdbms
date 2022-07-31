@@ -32,8 +32,7 @@ function SqlString(maxLength, isVariable, value) {
     if (this.value == null || this.value == undefined) return null;
     if (!this.isVariable) return padStringTrailing(this.value, this.maxLength);
 
-    // variable SqlStrings have a four-char overhead preceeding the actual string itself that indicates how long the string is
-    return `${this.value.length}${this.value}`;
+    return this.value;
   }
 
   this.validateValue(this.value);

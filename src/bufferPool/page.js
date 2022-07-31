@@ -1,8 +1,8 @@
 import { Bit, Char, Int, SmallInt, TinyInt, BigInt, Varchar } from '../dataTypes';
 import { EMPTY_SPACE_CHAR, PAGE_SIZE } from '../utilities/constants';
 import { padNumber } from '../utilities/helper';
-import { getVariableColumnLength, getVariableLengthColumnOffset } from './deserializer';
-import { getNullBitmapAndNullBitmapOffset, validateInsertValues } from './serializer';
+import { getFixedColumnValueIndexes, getFixedLengthColumnValue, getVariableColumnLength, getVariableLengthColumnOffset, getVariableLengthColumnValue } from './deserializer';
+import { getNullBitmapAndNullBitmapOffset, validateInsertValues, getVariableOffsetArray } from './serializer';
 
 /**
  * @class
@@ -29,7 +29,7 @@ function Page(tableDefinition) {
 
     recordText += padNumber(nullBitmapOffset, 4);
     
-    const fixedLengthDefinitions = definitions.filter(def => {
+    const fixedLengthDefinitions = this.columnDefinitions.filter(def => {
       return !def.isVariable;
     });
   
@@ -71,7 +71,7 @@ function Page(tableDefinition) {
     recordText += nullBitmap;
     recordText += variableOffsetArray;
   
-    const variableLengthDefinitions = definitions.filter(def => {
+    const variableLengthDefinitions = this.columnDefinitions.filter(def => {
       return def.isVariable;
     });
   
@@ -92,23 +92,32 @@ function Page(tableDefinition) {
   }
 
   this.deserializeRow = (recordIndex) => {
-    const numFixed = 2;
+    const fixedLengthDefinitions = this.columnDefinitions.filter(def => {
+      return !def.isVariable;
+    });
+    fixedLengthDefinitions.sort((a, b) => a.order - b.order);
+
+    const variableLengthDefinitions = this.columnDefinitions.filter(def => {
+      return def.isVariable;
+    });
+    variableLengthDefinitions.sort((a, b) => a.order - b.order);
+
+    const numFixed = fixedLengthDefinitions.length;
+    const numVariable = variableLengthDefinitions.length;
 
     const nullBitmapOffset = this.data.substring(recordIndex, recordIndex + 4);
-
     const nullBitmapStart = recordIndex + Number(nullBitmapOffset);
-    const nullBitmapEnd = nullBitmapStart + 6;
-
+    const nullBitmapSize = Number(this.data.substring(nullBitmapStart, nullBitmapStart + 2));
+    const nullBitmapEnd = nullBitmapStart + nullBitmapSize;
     const nullBitmap = this.data.substring(nullBitmapStart, nullBitmapEnd);
     const nullBitmapColumns = nullBitmap.substring(2).split('');
 
-    const varOffsetEnd = nullBitmapEnd + 10;
+    const varOffsetEnd = nullBitmapEnd + 2 + (4 * numVariable);
 
     const varOffsetArray = this.data.substring(nullBitmapEnd, varOffsetEnd);
     const varOffsetColumns = varOffsetArray.substring(2).match(/[\s\S]{1,4}/g);
 
     const columns = [];
-    let colIndex = recordIndex + 4;
     let colNum = 1;
 
     for (let i = 0; i < nullBitmapColumns.length; i++) {
@@ -121,26 +130,22 @@ function Page(tableDefinition) {
         varOffsetColumns);
         const colStart = varOffsetEnd + offset - colLength;
         const col = this.data.substring(colStart, colStart + colLength);
-        columns.push(col);
+        const val = getVariableLengthColumnValue(colNum - numFixed, variableLengthDefinitions, col);
+        columns.push(val);
       } else {
         // fixed length columns
-        const col = this.data.substring(colIndex, colIndex + 4);
-        columns.push(Number(col));
-        colIndex += 4;
+        const [colStart, colEnd] = getFixedColumnValueIndexes(colNum, fixedLengthDefinitions);
+        const col = this.data.substring(colStart + recordIndex, colEnd + recordIndex);
+        const val = getFixedLengthColumnValue(colNum, fixedLengthDefinitions, col);
+        columns.push(val);
       }
 
       colNum++;
     }
 
-    let result = '( ';
+    columns.sort((a, b) => a.order - b.order);
 
-    columns.forEach(value => {
-      result = result + value + ' ';
-    });
-
-    result = result + ')'
-
-    return result;
+    return columns;
   }
 
   this.fillInEmptySpace = (recordData) => {
@@ -176,6 +181,7 @@ function Page(tableDefinition) {
 
   this.selectAll = () => {
     const records = [];
+    console.log(this.data);
 
     const slotArr = this.slotArray.match(/[\s\S]{1,4}/g) || [];
     for (let i = slotArr.length - 1; i >= 0; i--) {
