@@ -1,4 +1,4 @@
-import { Int, SmallInt, TinyInt, BigInt, Bit, Char } from "../dataTypes";
+import { Int, SmallInt, TinyInt, BigInt, Bit, Char } from '../dataTypes';
 
 /**
  * @function
@@ -54,10 +54,10 @@ export function getFixedColumnValueIndexes(colNum, fixedDefinitions) {
         size = 1;
         break;
       case 5:
-        size = col.maxLength;
+        size = fixedDefinitions[i].maxLength;
         break;
       default:
-        throw new Error(`Unhandled data type: ${col.dataType} in function getNullBitmapAndNullBitmapOffset`);
+        throw new Error(`Unhandled data type: ${fixedDefinitions[i].dataType} in function getNullBitmapAndNullBitmapOffset`);
     }
 
     if (i == colIndex) {
@@ -143,4 +143,31 @@ export function getVariableLengthNullValue(colNum, variableDefinitions) {
     value: 'NULL',
     order: order
   };
+}
+
+export function getHeaderValue(name, header) {
+  switch (name) {
+    case 'fileId':
+      return header.substring(0, 2);
+    case 'pageId':
+      return header.substring(2, 6);
+    case 'pageType':
+      return header.substring(6, 7);
+    case 'pageLevel':
+      return header.substring(7, 9);
+    case 'prevPageId':
+      return header.substring(9, 13);
+    case 'nextPageId':
+      return header.substring(13, 17);
+    case 'recordCount':
+      return header.substring(17, 21);
+    case 'freeCount':
+      return header.substring(21, 25);
+    case 'reservedCount':
+      return header.substring(25, 29);
+    case 'firstFreeData':
+      return header.substring(29, 33);
+    default:
+      throw new Error('Unsupported page header attribute');
+  }
 }
