@@ -1,4 +1,4 @@
-import { padNumber, padStringTrailing } from '../helper';
+import { pad, padNumber, padStringTrailing } from '../helper';
 
 describe('padNumber', () => {
   test('throws NaN - first input', () => {
@@ -54,4 +54,32 @@ describe('padStringTrailing', () => {
       padStringTrailing('hello', 2);
     }).toThrow();
   });
-})
+});
+
+describe('pad', () => {
+  test('left alignment', () => {
+    expect(pad(2, 5, 'left')).toBe('2    ');
+  });
+
+  test('right alignment', () => {
+    expect(pad(2, 5, 'right')).toBe('    2');
+  });
+
+  test('throws when value exceeds length', () => {
+    expect(() => {
+      pad('hello', 3, 'left')
+    }).toThrow();
+  });
+
+  test('throws when length is not a number', () => {
+    expect(() => {
+      pad('hello', 'howdy', 'left')
+    }).toThrow();
+  });
+
+  test('throws when invalid alignment is supplied', () => {
+    expect(() => {
+      pad('hello', 5, 'center')
+    }).toThrow();
+  });
+});

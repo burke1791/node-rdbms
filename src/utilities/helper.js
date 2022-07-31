@@ -52,6 +52,8 @@ export function padStringTrailing(value, length) {
  * @param {(left|right)} alignment 
  */
 export function pad(value, length, alignment) {
+  if (isNaN(length)) throw new Error('length parameter must be a number');
+  
   const size = value.toString().length;
   if (size > length) throw new Error('Number of digits exceeds the allowed length');
 
