@@ -164,3 +164,82 @@ export function getVariableOffsetArray(values, definitions) {
 
   return offsetArr;
 }
+
+/**
+ * @typedef PageHeaderChangeType
+ * @property {String} name
+ * @property {Number} value
+ */
+
+/**
+ * @function
+ * @param {Number} pageType 
+ * @param {Array<PageHeaderChangeType>} changes 
+ * @param {String} [header]
+ * @returns {String}
+ */
+export function updatePageHeader(pageType, changes, header = '') {
+  if (header == '' || header == undefined || header == null) {
+    header = generateNewPageHeader(pageType);
+  }
+
+  changes.forEach(change => {
+    header = updateHeaderValue(change.name, change.value, header);
+  });
+
+  return header;
+}
+
+function generateNewPageHeader(pageType) {
+  const fileId = padNumber(1, 2);
+  const pageId = padNumber(1, 4);
+  const pageLevel = padNumber(0, 2);
+  const prevPageId = padNumber(0, 4);
+  const nextPageId = padNumber(0, 4);
+  const recordCount = padNumber(0, 4);
+  const freeCount = padNumber(0, 4);
+  const reservedCount = padNumber(0, 4);
+  const firstFreeData = padNumber(0, 4);
+
+  return `${fileId}${pageId}${pageType}${pageLevel}${prevPageId}${nextPageId}${recordCount}${freeCount}${reservedCount}${firstFreeData}`;
+}
+
+function updateHeaderValue(name, newValue, header) {
+  let newValueText = '';
+  let before = '';
+  let after = '';
+
+  switch (name) {
+    case 'prevPageId':
+      newValueText = padNumber(newValue, 4);
+      before = header.substring(0, 9);
+      after = header.substring(13);
+      return `${before}${newValueText}${after}`;
+    case 'nextPageId':
+      newValueText = padNumber(newValue, 4);
+      before = header.substring(0, 13);
+      after = header.substring(17);
+      return `${before}${newValueText}${after}`;
+    case 'recordCount':
+      newValueText = padNumber(newValue, 4);
+      before = header.substring(0, 17);
+      after = header.substring(21);
+      return `${before}${newValueText}${after}`;
+    case 'freeCount':
+      newValueText = padNumber(newValue, 4);
+      before = header.substring(0, 21);
+      after = header.substring(25);
+      return `${before}${newValueText}${after}`;
+    case 'reservedCount':
+      newValueText = padNumber(newValue, 4);
+      before = header.substring(0, 25);
+      after = header.substring(29);
+      return `${before}${newValueText}${after}`;
+    case 'firstFreeData':
+      newValueText = padNumber(newValue, 4);
+      before = header.substring(0, 29);
+      return `${before}${newValueText}`;
+    default:
+      throw new Error('Unhandled page header update type: ' + name);
+  }
+}

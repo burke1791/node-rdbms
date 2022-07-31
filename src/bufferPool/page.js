@@ -1,8 +1,8 @@
 import { Bit, Char, Int, SmallInt, TinyInt, BigInt, Varchar } from '../dataTypes';
-import { EMPTY_SPACE_CHAR, PAGE_SIZE } from '../utilities/constants';
+import { EMPTY_SPACE_CHAR, PAGE_HEADER_SIZE, PAGE_SIZE } from '../utilities/constants';
 import { padNumber } from '../utilities/helper';
 import { getFixedColumnValueIndexes, getFixedLengthColumnValue, getFixedLengthNullValue, getVariableColumnLength, getVariableLengthColumnOffset, getVariableLengthColumnValue, getVariableLengthNullValue } from './deserializer';
-import { getNullBitmapAndNullBitmapOffset, validateInsertValues, getVariableOffsetArray } from './serializer';
+import { getNullBitmapAndNullBitmapOffset, validateInsertValues, getVariableOffsetArray, updatePageHeader } from './serializer';
 
 /**
  * @class
@@ -14,7 +14,8 @@ function Page(tableDefinition) {
   this.columnDefinitions = tableDefinition.columns;
   this.pageSize = PAGE_SIZE;
   this.recordCount = 0;
-  this.firstFreeData = 0;
+  this.firstFreeData = 33;
+  this.header = '';
   this.data = '';
   this.slotArray = ''
 
@@ -153,7 +154,7 @@ function Page(tableDefinition) {
   }
 
   this.fillInEmptySpace = (recordData) => {
-    let length = recordData.length + this.slotArray.length;
+    let length = recordData.length + this.slotArray.length + PAGE_HEADER_SIZE;
 
     if (length > PAGE_SIZE) throw new Error('Page cannot exceed ' + PAGE_SIZE + ' chars');
 
@@ -161,20 +162,26 @@ function Page(tableDefinition) {
 
     while (length < PAGE_SIZE) {
       text = text + EMPTY_SPACE_CHAR;
-      length = text.length + this.slotArray.length;
+      length = text.length + this.slotArray.length + PAGE_HEADER_SIZE;
     }
 
     return text;
   }
 
   this.addRecordToPage = (newRecordIndex, recordData) => {
-    const allRecordData = this.data.substring(0, newRecordIndex) + recordData;
-    this.firstFreeData = allRecordData.length;
+    const allRecordData = this.data.substring(33, newRecordIndex) + recordData;
+    this.firstFreeData = allRecordData.length + PAGE_HEADER_SIZE;
     this.recordCount++;
 
+    const headerChanges = [
+      { name: 'recordCount', value: this.recordCount },
+      { name: 'firstFreeData', value: this.firstFreeData }
+    ];
+
+    this.header = updatePageHeader(1, headerChanges, this.header);
     this.slotArray = padNumber(newRecordIndex, 4) + this.slotArray;
 
-    this.data = this.fillInEmptySpace(allRecordData) + this.slotArray;
+    this.data = this.header + this.fillInEmptySpace(allRecordData) + this.slotArray;
   }
 
   this.newRecord = (values) => {
@@ -186,6 +193,7 @@ function Page(tableDefinition) {
   this.selectAll = () => {
     const records = [];
     console.log(this.data);
+    console.log(this.data.length);
 
     const slotArr = this.slotArray.match(/[\s\S]{1,4}/g) || [];
     for (let i = slotArr.length - 1; i >= 0; i--) {

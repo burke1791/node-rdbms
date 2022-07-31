@@ -74,3 +74,26 @@ Create Table Person (
 ## Generic Table Definition
 
 Now is a good time to genericize the code so that it can handle any kind of table definition (with some restrictions not worth mentioning).
+
+## B-Tree Implementation
+
+Next up, we'll start implementing the B-Tree structure for table data. The first step towards doing so is adding a page header to each page. This new page header structure is a fixed number of chars and will include items we won't use until much later on, but since it's a fixed size I want to include them from the get go. The structure is as follows:
+
+Header: 33 chars
+  - fileId: 2 chars
+  - pageId: 4 chars
+  - pageType: 1 char
+    - 1-data
+    - 2-index
+  - pageLevel: 2 chars
+    - indicates the level in the B-tree the page is
+    - data (leaf) pages are always 00
+  - prevPageId: 4 chars
+    - when there is no previous page, this value is 0000
+  - nextPageId: 4 chars
+    - when there is no next page, this value is 0000
+  - recordCount: 4 chars
+  - freeCount: 4 chars
+  - reservedCount: 4 chars
+  - firstFreeData: 4 chars
+
