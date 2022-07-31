@@ -2,10 +2,11 @@
 
 import { program } from 'commander';
 import prompts from 'prompts';
+import BufferPool from '../bufferPool';
 import Page from '../bufferPool/page';
 import { pad } from '../utilities/helper';
 
-const tableDefinition = {
+const employeeTable = {
   name: 'Employee',
   columns: [
     {
@@ -43,7 +44,24 @@ const tableDefinition = {
   ]
 };
 
+const testTable = {
+  name: 'Test',
+  columns: [
+    {
+      name: 'Name',
+      dataType: 5,
+      isVariable: false,
+      isNullable: false,
+      maxLength: 5000,
+      order: 1
+    }
+  ]
+}
+
+const tableDefinition = employeeTable
+
 const data = new Page(tableDefinition);
+const buffer = new BufferPool()
 
 program.command('start')
        .description('Starts the DB server')
@@ -53,6 +71,8 @@ program.parse();
 
 async function start() {
   console.log('Starting DB Server...');
+
+  buffer.loadPageIntoMemory(1, tableDefinition);
   
   while (true) {
     const response = await prompts({
@@ -62,6 +82,7 @@ async function start() {
     });
 
     if (response.query == '.exit') {
+      buffer.flushAll();
       console.log('Shutting down');
       break;
     }

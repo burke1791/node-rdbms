@@ -1,7 +1,7 @@
 import { Bit, Char, Int, SmallInt, TinyInt, BigInt, Varchar } from '../dataTypes';
 import { EMPTY_SPACE_CHAR, PAGE_HEADER_SIZE, PAGE_SIZE } from '../utilities/constants';
 import { padNumber } from '../utilities/helper';
-import { getFixedColumnValueIndexes, getFixedLengthColumnValue, getFixedLengthNullValue, getVariableColumnLength, getVariableLengthColumnOffset, getVariableLengthColumnValue, getVariableLengthNullValue } from './deserializer';
+import { getFixedColumnValueIndexes, getFixedLengthColumnValue, getFixedLengthNullValue, getHeaderValue, getVariableColumnLength, getVariableLengthColumnOffset, getVariableLengthColumnValue, getVariableLengthNullValue } from './deserializer';
 import { getNullBitmapAndNullBitmapOffset, validateInsertValues, getVariableOffsetArray, updatePageHeader } from './serializer';
 
 /**
@@ -14,10 +14,20 @@ function Page(tableDefinition) {
   this.columnDefinitions = tableDefinition.columns;
   this.pageSize = PAGE_SIZE;
   this.recordCount = 0;
-  this.firstFreeData = 33;
+  this.firstFreeData = PAGE_HEADER_SIZE;
   this.header = '';
   this.data = '';
-  this.slotArray = ''
+  this.slotArray = '';
+
+  this.initPageFromDisk = (data) => {
+    this.data = data;
+    this.header = this.data.substring(0, PAGE_HEADER_SIZE);
+    this.recordCount = Number(getHeaderValue('recordCount', this.header));
+    this.firstFreeData = Number(getHeaderValue('firstFreeData', this.header));
+
+    const slotArrStart = PAGE_SIZE - (this.recordCount * 4) - 1;
+    this.slotArray = this.data.substring(slotArrStart, PAGE_SIZE);
+  }
 
   this.serializeRow = (values) => {
     validateInsertValues(values, this.columnDefinitions);
@@ -59,7 +69,7 @@ function Page(tableDefinition) {
             colVal = new Bit(val.value);
             break;
           case 5:
-            colVal = new Char(val.value);
+            colVal = new Char(val.value, fdef.maxLength);
             break;
           default:
             throw new Error(`Unhandled data type: ${col.dataType} in function getNullBitmapAndNullBitmapOffset`);
@@ -169,7 +179,12 @@ function Page(tableDefinition) {
   }
 
   this.addRecordToPage = (newRecordIndex, recordData) => {
-    const allRecordData = this.data.substring(33, newRecordIndex) + recordData;
+    const allRecordData = this.data.substring(PAGE_HEADER_SIZE, newRecordIndex) + recordData;
+
+    const newPageSize = PAGE_HEADER_SIZE + allRecordData.length + (this.recordCount + 1) * 4;
+
+    if (newPageSize > PAGE_SIZE) throw new Error('Page must be split');
+
     this.firstFreeData = allRecordData.length + PAGE_HEADER_SIZE;
     this.recordCount++;
 

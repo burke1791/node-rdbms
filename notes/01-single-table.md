@@ -97,3 +97,6 @@ Header: 33 chars
   - reservedCount: 4 chars
   - firstFreeData: 4 chars
 
+### Persistent Storage
+
+In order for multiple pages to really make sense, we need to be able to take advantage of persistent storage (writing data to disk). Therefore we will need to create a Storage Engine.

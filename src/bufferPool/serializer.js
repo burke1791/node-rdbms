@@ -1,6 +1,6 @@
-import { Bit, Char, Varchar } from "../dataTypes";
-import { Int, SmallInt, TinyInt, BigInt } from "../dataTypes/numbers";
-import { padNumber } from "../utilities/helper";
+import { Bit, Char, Varchar } from '../dataTypes';
+import { Int, SmallInt, TinyInt, BigInt } from '../dataTypes/numbers';
+import { padNumber } from '../utilities/helper';
 
 /**
  * @function
@@ -60,10 +60,10 @@ export function getNullBitmapAndNullBitmapOffset(values, definitions) {
           offset += 1;
           break;
         case 5:
-          offset += col.maxLength;
+          offset += fdef.maxLength;
           break;
         default:
-          throw new Error(`Unhandled data type: ${col.dataType} in function getNullBitmapAndNullBitmapOffset`);
+          throw new Error(`Unhandled data type: ${fdef.dataType} in function getNullBitmapAndNullBitmapOffset`);
       }
     }
   }
