@@ -5,7 +5,7 @@ import { generateBlankPage } from './serializer';
 
 function BufferPool() {
 
-  this.pages = [];
+  this.pages = {};
 
   this.loadPageIntoMemory = async (pageId, tableDefinition) => {
     const pageData = await readPageFromDisk(1, pageId);
@@ -17,6 +17,9 @@ function BufferPool() {
       const blankPage = generateBlankPage(1, pageId, 1);
       page.initPageFromDisk(blankPage);
     }
+
+    if (this.pages[tableDefinition] == undefined) this.pages[tableDefinition.name] = [];
+    this.pages[tableDefinition.name].push(page);
   }
 
   this.flushPageToDisk = async (pageId) => {
@@ -37,6 +40,10 @@ function BufferPool() {
         console.log('Error writing pageId: ' + pageId);
       }
     });
+  }
+
+  this.executeInsert = (tableName, records) => {
+    
   }
 }
 
