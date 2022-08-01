@@ -60,8 +60,7 @@ const testTable = {
 
 const tableDefinition = testTable
 
-const data = new Page(tableDefinition);
-const buffer = new BufferPool()
+const buffer = new BufferPool(5)
 
 program.command('start')
        .description('Starts the DB server')
@@ -73,7 +72,7 @@ async function start() {
   console.log('Starting DB Server...');
 
   // loading the first DB page into memory at startup
-  buffer.loadPageIntoMemory(1, tableDefinition);
+  await buffer.loadPageIntoMemory(1, tableDefinition);
   
   while (true) {
     const response = await prompts({
@@ -92,13 +91,13 @@ async function start() {
 
     switch (parsedQuery[0]) {
       case 'select':
-        const records = data.selectAll();
-        console.log(records);
+        const records = buffer.executeSelect(tableDefinition.name);
+        // console.log(records);
         displayRecords(records);
         break;
       case 'insert':
         const values = transformInsertInput(response.query);
-        data.newRecord(values);
+        buffer.executeInsert(tableDefinition.name, values);
         break;
       default:
         throw new Error('Unhandled query: ' + parsedQuery[0]);
@@ -118,7 +117,7 @@ function transformInsertInput(query) {
     values.push({ name: name, value: value });
   }
 
-  return values;
+  return [values];
 }
 
 function displayRecords(resultset) {

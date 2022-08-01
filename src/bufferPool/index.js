@@ -1,11 +1,17 @@
-import { flushPageToDisk, readPageFromDisk } from '../storageEngine';
+import { writePageToDisk, readPageFromDisk } from '../storageEngine';
 import { getHeaderValue } from './deserializer';
 import Page from './page';
-import { generateBlankPage } from './serializer';
+import { generateBlankPage, serializeRecord, validateInsertValues } from './serializer';
 
-function BufferPool() {
+/**
+ * @class
+ * @param {Number} maxPageCount 
+ */
+function BufferPool(maxPageCount) {
 
   this.pages = {};
+  this.pageCount = 0;
+  this.maxPageCount = maxPageCount;
 
   this.loadPageIntoMemory = async (pageId, tableDefinition) => {
     const pageData = await readPageFromDisk(1, pageId);
@@ -24,7 +30,7 @@ function BufferPool() {
 
   this.flushPageToDisk = async (pageId) => {
     const page = this.pages.find(pg => getHeaderValue('pageId', pg.header) == pageId);
-    const isWritten = await flushPageToDisk(1, pageId, page.data);
+    const isWritten = writePageToDisk(1, pageId, page.data);
 
     if (!isWritten) {
       console.log('Error writing pageId: ' + pageId);
@@ -32,21 +38,40 @@ function BufferPool() {
   }
 
   this.flushAll = async () => {
-    this.pages.forEach(pg => {
-      const pageId = getHeaderValue('pageId', pg.header);
-      const isWritten = await flushPageToDisk(1, pageId, pg.data);
+    const tableNames = Object.keys(this.pages);
 
-      if (!isWritten) {
-        console.log('Error writing pageId: ' + pageId);
-      }
-    });
+    for (let table of tableNames) {
+      this.pages[table].forEach(pg => {
+        const pageId = getHeaderValue('pageId', pg.header);
+        const isWritten = writePageToDisk(1, pageId, pg.data);
+  
+        if (!isWritten) {
+          console.log('Error writing pageId: ' + pageId);
+        }
+      });
+    }
   }
 
   this.executeInsert = (tableName, records) => {
-    // find a page with available space for the new record
+    records.forEach(record => {
+      const page = this.pages[tableName].find(pg => pg.hasAvailableSpace(record));
+
+      if (page == undefined) throw new Error('Need to create a new page');
+
+      page.newRecord(record);
+    });
+  }
+
+  this.executeSelect = (tableName) => {
+    // spit out all records only from pages currently in the buffer pool
+    let records = [];
+
     this.pages[tableName].forEach(page => {
-      if (page.)
-    })
+      const resultset = page.selectAll();
+      records.push(...resultset);
+    });
+
+    return records;
   }
 }
 

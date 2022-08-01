@@ -1,2 +1,2 @@
 export { readPageFromDisk } from './reader';
-export { flushPageToDisk } from './writer';
+export { writePageToDisk } from './writer';

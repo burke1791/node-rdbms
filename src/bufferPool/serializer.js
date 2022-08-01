@@ -1,16 +1,28 @@
 import { Bit, Char, Varchar } from '../dataTypes';
 import { Int, SmallInt, TinyInt, BigInt } from '../dataTypes/numbers';
 import { padNumber } from '../utilities/helper';
+import { PAGE_SIZE, EMPTY_SPACE_CHAR } from '../utilities/constants';
 
 /**
  * @function
  * @param {String} headerData 
- * @param {String} recordData 
- * @param {String} slotArray 
+ * @param {String} [recordData]
+ * @param {String} [slotArray]
  * @returns {String}
  */
-export function fillInEmptyPageSpace(headerData, recordData, slotArray) {
-  
+export function fillInEmptyPageSpace(headerData, recordData = '', slotArray = '') {
+  let length = headerData.length + recordData.length + slotArray.length;
+
+  if (length > PAGE_SIZE) throw new Error('Page cannot exceed ' + PAGE_SIZE + ' chars');
+
+  let text = recordData;
+
+  while (length < PAGE_SIZE) {
+    text = text + EMPTY_SPACE_CHAR;
+    length = text.length + slotArray.length + headerData.length;
+  }
+
+  return `${headerData}${text}${slotArray}`;
 }
 
 /**
@@ -89,12 +101,13 @@ export function getNullBitmapAndNullBitmapOffset(values, definitions) {
  * @returns {Boolean}
  */
 export function validateInsertValues(values, definitions) {
+  let isValid = true;
   for (let def of definitions) {
     const val = values.find(value => value.name.toLowerCase() === def.name.toLowerCase());
-    const isValid = validateDataType(val.value, def.dataType, def.isNullable, def.maxLength);
+    isValid = validateDataType(val.value, def.dataType, def.isNullable, def.maxLength);
   }
 
-  return true;
+  return isValid;
 }
 
 /**
@@ -200,9 +213,22 @@ function generateNewPageHeader({
   recordCount = 0,
   freeCount = 0,
   reservedCount = 0,
-  firstFreeData = 0
+  firstFreeData = 33
 }) {
-  return `${fileId}${pageId}${pageType}${pageLevel}${prevPageId}${nextPageId}${recordCount}${freeCount}${reservedCount}${firstFreeData}`;
+  let header = '';
+
+  header += padNumber(fileId, 2);
+  header += padNumber(pageId, 4);
+  header += padNumber(pageType, 1);
+  header += padNumber(pageLevel, 2);
+  header += padNumber(prevPageId, 4);
+  header += padNumber(nextPageId, 4);
+  header += padNumber(recordCount, 4);
+  header += padNumber(freeCount, 4);
+  header += padNumber(reservedCount, 4);
+  header += padNumber(firstFreeData, 4);
+
+  return header;
 }
 
 function updateHeaderValue(name, newValue, header) {
@@ -256,4 +282,87 @@ export function generateBlankPage(fileId, pageId, pageType) {
   const header = generateNewPageHeader({ pageType, fileId, pageId });
   const data = fillInEmptyPageSpace(header);
   return data;
+}
+
+/**
+ * @typedef CellData
+ * @property {String} name
+ * @property {String|Number} value
+ */
+
+/**
+ * @function
+ * @param {Array<CellData>} values 
+ * @param {Array<Object>} columnDefinitions
+ * @returns {String}
+ */
+export function serializeRecord(values, columnDefinitions) {
+  const [nullBitmap, nullBitmapOffset] = getNullBitmapAndNullBitmapOffset(values, columnDefinitions);
+
+  const variableOffsetArray = getVariableOffsetArray(values, columnDefinitions);
+
+  let recordText = '';
+
+  recordText += padNumber(nullBitmapOffset, 4);
+  
+  const fixedLengthDefinitions = columnDefinitions.filter(def => {
+    return !def.isVariable;
+  });
+
+  fixedLengthDefinitions.sort((a, b) => a.order - b.order);
+
+  for (let fdef of fixedLengthDefinitions) {
+    const val = values.find(value => value.name.toLowerCase() === fdef.name.toLowerCase());
+
+    let colVal;
+
+    if (val != undefined && val.value != null && val.value != undefined) {
+      switch (fdef.dataType) {
+        case 0:
+          colVal = new TinyInt(val.value);
+          break;
+        case 1:
+          colVal = new SmallInt(val.value);
+          break;
+        case 2:
+          colVal = new Int(val.value);
+          break;
+        case 3:
+          colVal = new BigInt(val.value);
+          break;
+        case 4:
+          colVal = new Bit(val.value);
+          break;
+        case 5:
+          colVal = new Char(val.value, fdef.maxLength);
+          break;
+        default:
+          throw new Error(`Unhandled data type: ${col.dataType} in function getNullBitmapAndNullBitmapOffset`);
+      }
+
+      recordText += colVal.getText();
+    }
+  }
+
+  recordText += nullBitmap;
+  recordText += variableOffsetArray;
+
+  const variableLengthDefinitions = columnDefinitions.filter(def => {
+    return def.isVariable;
+  });
+
+  variableLengthDefinitions.sort((a, b) => a.order - b.order);
+
+  for (let vdef of variableLengthDefinitions) {
+    const val = values.find(value => value.name.toLowerCase() === vdef.name.toLowerCase());
+
+    let colVal;
+
+    if (val != undefined && val.value != null && val.value != undefined) {
+      colVal = new Varchar(val.value);
+      recordText += colVal.getText();
+    }
+  }
+
+  return recordText;
 }
