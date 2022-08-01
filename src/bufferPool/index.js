@@ -43,7 +43,10 @@ function BufferPool() {
   }
 
   this.executeInsert = (tableName, records) => {
-    
+    // find a page with available space for the new record
+    this.pages[tableName].forEach(page => {
+      if (page.)
+    })
   }
 }
 
