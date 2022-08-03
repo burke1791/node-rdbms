@@ -30,79 +30,6 @@ function Page(tableDefinition) {
     }
   }
 
-  // this.serializeRow = (values) => {
-  //   validateInsertValues(values, this.columnDefinitions);
-
-  //   const [nullBitmap, nullBitmapOffset] = getNullBitmapAndNullBitmapOffset(values, this.columnDefinitions);
-
-  //   const variableOffsetArray = getVariableOffsetArray(values, this.columnDefinitions);
-
-  //   let recordText = '';
-
-  //   recordText += padNumber(nullBitmapOffset, 4);
-    
-  //   const fixedLengthDefinitions = this.columnDefinitions.filter(def => {
-  //     return !def.isVariable;
-  //   });
-  
-  //   fixedLengthDefinitions.sort((a, b) => a.order - b.order);
-
-  //   for (let fdef of fixedLengthDefinitions) {
-  //     const val = values.find(value => value.name.toLowerCase() === fdef.name.toLowerCase());
-
-  //     let colVal;
-
-  //     if (val != undefined && val.value != null && val.value != undefined) {
-  //       switch (fdef.dataType) {
-  //         case 0:
-  //           colVal = new TinyInt(val.value);
-  //           break;
-  //         case 1:
-  //           colVal = new SmallInt(val.value);
-  //           break;
-  //         case 2:
-  //           colVal = new Int(val.value);
-  //           break;
-  //         case 3:
-  //           colVal = new BigInt(val.value);
-  //           break;
-  //         case 4:
-  //           colVal = new Bit(val.value);
-  //           break;
-  //         case 5:
-  //           colVal = new Char(val.value, fdef.maxLength);
-  //           break;
-  //         default:
-  //           throw new Error(`Unhandled data type: ${col.dataType} in function getNullBitmapAndNullBitmapOffset`);
-  //       }
-
-  //       recordText += colVal.getText();
-  //     }
-  //   }
-
-  //   recordText += nullBitmap;
-  //   recordText += variableOffsetArray;
-  
-  //   const variableLengthDefinitions = this.columnDefinitions.filter(def => {
-  //     return def.isVariable;
-  //   });
-  
-  //   variableLengthDefinitions.sort((a, b) => a.order - b.order);
-
-  //   for (let vdef of variableLengthDefinitions) {
-  //     const val = values.find(value => value.name.toLowerCase() === vdef.name.toLowerCase());
-
-  //     let colVal;
-
-  //     if (val != undefined && val.value != null && val.value != undefined) {
-  //       colVal = new Varchar(val.value);
-  //       recordText += colVal.getText();
-  //     }
-  //   }
-
-  //   return recordText;
-  // }
-
   this.deserializeRow = (recordIndex) => {
     const fixedLengthDefinitions = this.columnDefinitions.filter(def => {
       return !def.isVariable;
@@ -211,6 +138,8 @@ function Page(tableDefinition) {
 
   this.selectAll = () => {
     const records = [];
+
+    console.log(getHeaderValue('firstFreeData', this.header));
 
     const slotArr = this.slotArray.match(/[\s\S]{1,4}/g) || [];
     for (let i = slotArr.length - 1; i >= 0; i--) {

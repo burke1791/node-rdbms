@@ -1,21 +1,24 @@
 import { writePageToDisk, readPageFromDisk } from '../storageEngine';
+import { isDuplicateKey } from './constraints';
 import { getHeaderValue } from './deserializer';
 import Page from './page';
 import { generateBlankPage, serializeRecord, validateInsertValues } from './serializer';
 
 /**
  * @class
- * @param {Number} maxPageCount 
+ * @param {Number} maxPageCount
+ * @param {Array<Object>} tableDefinition
  */
-function BufferPool(maxPageCount) {
+function BufferPool(maxPageCount, tableDefinition) {
 
+  this.tableDefinition = tableDefinition;
   this.pages = {};
   this.pageCount = 0;
   this.maxPageCount = maxPageCount;
 
-  this.loadPageIntoMemory = async (pageId, tableDefinition) => {
+  this.loadPageIntoMemory = async (pageId) => {
     const pageData = await readPageFromDisk(1, pageId);
-    const page = new Page(tableDefinition);
+    const page = new Page(this.tableDefinition);
 
     if (pageData) {
       page.initPageFromDisk(pageData);
@@ -24,8 +27,9 @@ function BufferPool(maxPageCount) {
       page.initPageFromDisk(blankPage);
     }
 
-    if (this.pages[tableDefinition] == undefined) this.pages[tableDefinition.name] = [];
-    this.pages[tableDefinition.name].push(page);
+    if (this.pages[this.tableDefinition] == undefined) this.pages[this.tableDefinition.name] = [];
+    this.pages[this.tableDefinition.name].push(page);
+    this.pageCount++;
   }
 
   this.flushPageToDisk = async (pageId) => {
@@ -54,9 +58,25 @@ function BufferPool(maxPageCount) {
 
   this.executeInsert = (tableName, records) => {
     records.forEach(record => {
-      const page = this.pages[tableName].find(pg => pg.hasAvailableSpace(record));
+      const pk = Number(record.find(col => col.name.toLowerCase() === 'employeeid').value);
 
-      if (page == undefined) throw new Error('Need to create a new page');
+      for (let page of this.pages[tableName]) {
+        if (isDuplicateKey(page, pk)) {
+          console.log('Duplicate key');
+          return false;
+        }
+      }
+
+      let page = this.pages[tableName].find(pg => pg.hasAvailableSpace(record));
+
+      if (page == undefined) {
+        // create a new page
+        page = new Page(this.tableDefinition);
+        const blankPage = generateBlankPage(1, this.pageCount + 1, 1);
+        page.initPageFromDisk(blankPage);
+        this.pages[tableName].push(page);
+        this.pageCount++;
+      }
 
       page.newRecord(record);
     });

@@ -103,5 +103,10 @@ In order for multiple pages to really make sense, we need to be able to take adv
 
 The storage engine will be responsible for reading and writing pages to disk.
 
-### Multiple Pages
+Currently it will only write to disk when we call the ".exit" command; failures will cause data loss.
 
+### Primary Key
+
+Since B-Trees require a unique key for every record, I am going to use the EmployeeId as the primary key for this exercise. In order to enforce this, we will need to scan the table to check if the key already exists each time we want to insert a row.
+
+Since we don't have B-trees implemented yet, we will need to sequentially scan all pages to check for a duplicate key.

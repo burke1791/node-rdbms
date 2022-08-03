@@ -22,7 +22,7 @@ const employeeTable = {
       dataType: 6,
       isVariable: true,
       isNullable: false,
-      maxLength: 50,
+      maxLength: 30,
       order: 2
     },
     {
@@ -58,9 +58,9 @@ const testTable = {
   ]
 }
 
-const tableDefinition = testTable
+const tableDefinition = employeeTable
 
-const buffer = new BufferPool(5)
+const buffer = new BufferPool(5, tableDefinition)
 
 program.command('start')
        .description('Starts the DB server')
@@ -72,7 +72,7 @@ async function start() {
   console.log('Starting DB Server...');
 
   // loading the first DB page into memory at startup
-  await buffer.loadPageIntoMemory(1, tableDefinition);
+  await buffer.loadPageIntoMemory(1);
   
   while (true) {
     const response = await prompts({
