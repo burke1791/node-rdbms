@@ -3,7 +3,6 @@
 import { program } from 'commander';
 import prompts from 'prompts';
 import BufferPool from '../bufferPool';
-import Page from '../bufferPool/page';
 import { pad } from '../utilities/helper';
 
 const employeeTable = {
@@ -27,10 +26,10 @@ const employeeTable = {
     },
     {
       name: 'Position',
-      dataType: 6,
-      isVariable: true,
+      dataType: 5,
+      isVariable: false,
       isNullable: true,
-      maxLength: 30,
+      maxLength: 100,
       order: 3
     },
     {

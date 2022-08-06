@@ -95,3 +95,27 @@ export function fillInEmptyPageSpace(header, recordData = '', slotArray = '') {
 
   return text;
 }
+
+/**
+ * @function
+ * @param {String} value 
+ * @returns {Number}
+ */
+export function parseNumberFromPage(value) {
+  // trim leading zeros
+  const digits = value.split('');
+  let isLeading = true;
+
+  const newDigits = digits.filter(digit => {
+    if (digit !== '0') isLeading = false;
+
+    if (isLeading) {
+      return digit !== '0';
+    }
+
+    return true;
+  });
+
+  const number = newDigits.join('');
+  return Number(number);
+}
