@@ -2,32 +2,26 @@ import { writePageToDisk, readPageFromDisk } from '../storageEngine';
 import { isDuplicateKey } from './constraints';
 import { getHeaderValue } from './deserializer';
 import Page from './page';
-import { generateBlankPage, serializeRecord, validateInsertValues } from './serializer';
+import { generateBlankPage } from './serializer';
 
 /**
  * @class
  * @param {Number} maxPageCount
- * @param {Array<Object>} tableDefinition
  */
-function BufferPool(maxPageCount, tableDefinition) {
+function BufferPool(maxPageCount) {
 
-  this.tableDefinition = tableDefinition;
   this.pages = {};
   this.pageCount = 0;
   this.maxPageCount = maxPageCount;
 
-  this.loadPageIntoMemory = async (pageId) => {
-    const pageData = await readPageFromDisk(1, pageId);
-    const page = new Page(this.tableDefinition);
+  this.loadPageIntoMemory = async (filename, pageId) => {
+    const pageData = await readPageFromDisk(filename, pageId);
+    const page = new Page();
 
-    if (pageData) {
-      page.initPageFromDisk(pageData);
-    } else {
-      const blankPage = generateBlankPage(1, pageId, 1);
-      page.initPageFromDisk(blankPage);
-    }
+    page.initPageFromDisk(pageData);
 
     if (this.pages[this.tableDefinition] == undefined) this.pages[this.tableDefinition.name] = [];
+
     this.pages[this.tableDefinition.name].push(page);
     this.pageCount++;
   }
@@ -56,7 +50,7 @@ function BufferPool(maxPageCount, tableDefinition) {
     }
   }
 
-  this.executeInsert = (tableName, records) => {
+  this.executeInsert = (schemaName, tableName, records) => {
     records.forEach(record => {
       const pk = Number(record.find(col => col.name.toLowerCase() === 'employeeid').value);
 
@@ -82,12 +76,18 @@ function BufferPool(maxPageCount, tableDefinition) {
     });
   }
 
-  this.executeSelect = (tableName) => {
+  /**
+   * @method
+   * @param {String} tableName
+   * @param {Array<SimplePredicate>} predicate 
+   * @returns {Array<Array<ResultCell>>}
+   */
+  this.executeSelect = (tableName, predicate) => {
     // spit out all records only from pages currently in the buffer pool
     let records = [];
 
     this.pages[tableName].forEach(page => {
-      const resultset = page.selectAll();
+      const resultset = page.select(predicate);
       records.push(...resultset);
     });
 

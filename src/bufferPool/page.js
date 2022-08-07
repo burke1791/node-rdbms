@@ -136,10 +136,43 @@ function Page(tableDefinition) {
     this.addRecordToPage(serializedRecord);
   }
 
-  this.selectAll = () => {
+  /**
+   * @method
+   * @param {Array<SimplePredicate>} [predicate]
+   * @returns {Array<Array<ResultCell>>}
+   */
+  this.select = (predicate = []) => {
     const records = [];
 
-    console.log(getHeaderValue('firstFreeData', this.header));
+    const slotArr = this.slotArray.match(/[\s\S]{1,4}/g) || [];
+    for (let i = slotArr.length - 1; i >= 0; i--) {
+      let recordIndex = Number(slotArr[i]);
+      records.push(this.deserializeRow(recordIndex));
+    }
+
+    let resultset;
+
+    if (predicate.length > 0) {
+      resultset = records.filter(record => {
+        for (let col of record) {
+          const pred = predicate.find(p => p.colName.toLowerCase() == col.name.toLowerCase());
+
+          if (pred != undefined) {
+            if (pred.colValue != col.value) return false;
+          }
+        }
+        
+        return true;
+      });
+    } else {
+      resultset = records;
+    }
+
+    return resultset;
+  }
+
+  this.selectAll = () => {
+    const records = [];
 
     const slotArr = this.slotArray.match(/[\s\S]{1,4}/g) || [];
     for (let i = slotArr.length - 1; i >= 0; i--) {

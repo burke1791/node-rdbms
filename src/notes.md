@@ -3,7 +3,7 @@ In this demo project, I am going to store the data "bits" as cleartext in the fi
 
 # Database file
 
-The database file consists of one or more pages, which have a minimum size of 512 chars and increasing by powers of 2. All pages in the file are the same size.
+The database file consists of one or more pages, which have an exact size of 8,192 chars. All pages in the file are the same size.
 
 ## Page Types
 

@@ -3,6 +3,10 @@
 import { program } from 'commander';
 import prompts from 'prompts';
 import BufferPool from '../bufferPool';
+import { generateBlankPage } from '../bufferPool/serializer';
+import { fileExists } from '../storageEngine/reader';
+import { initializeObjectsTable } from '../system/objects';
+import { initializeSequencesTable } from '../system/sequences';
 import { pad } from '../utilities/helper';
 
 const employeeTable = {
@@ -29,7 +33,7 @@ const employeeTable = {
       dataType: 5,
       isVariable: false,
       isNullable: true,
-      maxLength: 100,
+      maxLength: 2000,
       order: 3
     },
     {
@@ -59,7 +63,7 @@ const testTable = {
 
 const tableDefinition = employeeTable
 
-const buffer = new BufferPool(5, tableDefinition)
+const buffer = new BufferPool(5)
 
 program.command('start')
        .description('Starts the DB server')
@@ -69,6 +73,14 @@ program.parse();
 
 async function start() {
   console.log('Starting DB Server...');
+
+  if (!fileExists('data')) {
+    // initialize the DB
+    console.log('First startup, initializing DB...');
+    await initializeObjectsTable(buffer);
+    await initializeSequencesTable(buffer);
+    
+  }
 
   // loading the first DB page into memory at startup
   await buffer.loadPageIntoMemory(1);
