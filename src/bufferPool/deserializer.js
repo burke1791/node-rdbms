@@ -8,7 +8,7 @@ import { Int, SmallInt, TinyInt, BigInt, Bit, Char } from '../dataTypes';
  * @returns {Array<ResultCell>}
  */
 export function deserializeRecord(recordIndex, pageData, columnDefinitions) {
-  // console.log(columnDefinitions);
+  console.log('-----------  deserialize start  ------------');
   const fixedLengthDefinitions = columnDefinitions.filter(def => {
     return !def.isVariable;
   });
@@ -196,7 +196,7 @@ export function getFixedLengthNullValue(colNum, fixedDefinitions) {
 
   return {
     name: name,
-    value: 'NULL',
+    value: null,
     order: order
   };
 }
@@ -218,7 +218,7 @@ export function getVariableLengthNullValue(colNum, variableDefinitions) {
 
   return {
     name: name,
-    value: 'NULL',
+    value: null,
     order: order
   };
 }

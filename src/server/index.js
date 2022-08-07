@@ -3,7 +3,6 @@
 import { program } from 'commander';
 import prompts from 'prompts';
 import BufferPool from '../bufferPool';
-import { generateBlankPage } from '../bufferPool/serializer';
 import { fileExists } from '../storageEngine/reader';
 import { initColumnsTableDefinition, initializeColumnsTable } from '../system/columns';
 import { initializeObjectsTable, initObjectsTableDefinition } from '../system/objects';
@@ -22,7 +21,6 @@ async function start() {
   console.log('Starting DB Server...');
 
   const dataFileExists = await fileExists('data');
-  console.log(dataFileExists);
 
   if (!dataFileExists) {
     // initialize the DB
@@ -32,7 +30,6 @@ async function start() {
     await initializeColumnsTable(buffer);
     
     initObjectsTableDefinition(buffer, 1);
-    await buffer.flushPageToDisk(1);
     initSequencesTableDefinition(buffer, 8);
     initColumnsTableDefinition(buffer, 12);
 
@@ -60,9 +57,9 @@ async function start() {
     switch (parsedQuery[0]) {
       case 'select':
         const { schema, table } = transformSelectInput(response.query);
-        const records = buffer.executeSelect(schema, table, []);
-        // console.log(records);
-        displayRecords(records);
+        const records = await buffer.executeSelect(schema, table, []);
+        console.log(records);
+        // displayRecords(records);
         break;
       default:
         throw new Error('Unhandled query: ' + parsedQuery[0]);
@@ -126,7 +123,13 @@ function displayRecords(resultset) {
         alignment = 'right';
       }
 
-      output += constructOutputCell(col.value, resultMetadata[col.name].length, alignment, true);
+      let colValue = col.value;
+
+      if (col.value == null) {
+        colValue = 'NULL';
+      }
+
+      output += constructOutputCell(colValue, resultMetadata[col.name].length, alignment, true);
     });
 
     console.log(output);

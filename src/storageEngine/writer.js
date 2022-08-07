@@ -23,7 +23,6 @@ export async function writePageToDisk(filename, data) {
     }
 
     if (existsSync(fullFilename)) {
-      console.log('writing to existing file');
       const file = await readFile(fullFilename, { encoding: 'utf-8' });
       const header = data.substring(0, PAGE_HEADER_SIZE);
       const pageId = getHeaderValue('pageId', header);

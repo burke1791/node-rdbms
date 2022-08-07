@@ -225,6 +225,8 @@ export async function getColumnDefinitionsByTableObjectId(buffer, tableObjectId)
 
   const resultSet = await buffer.scan(3, predicate, columnsTableDefinition, []);
 
+  console.log(resultSet);
+
   const columnDefinitions = [];
 
   resultSet.forEach(row => {
@@ -245,22 +247,22 @@ function parseColumnDefinition(resultColumns) {
   resultColumns.forEach(col => {
     switch (col.name) {
       case 'data_type':
-        def.dataType = col.value;
+        def.dataType = Number(col.value);
         break;
       case 'is_variable':
-        def.isVariable = col.value;
+        def.isVariable = !!col.value;
         break;
       case 'is_nullable':
-        def.isNullable = col.value;
+        def.isNullable = !!col.value;
         break;
       case 'max_length':
-        def.maxLength = col.value;
+        def.maxLength = isNaN(Number(col.value)) ? col.value : Number(col.value);
         break;
       case 'column_name':
         def.name = col.value;
         break;
       case 'column_order':
-        def.order = col.value;
+        def.order = Number(col.value);
         break;
     }
   });

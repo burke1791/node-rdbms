@@ -58,6 +58,8 @@ function BufferPool(maxPageCount) {
    * @returns {{Array<Array<ResultCell>>}}
    */
   this.scan = async (pageId, predicate, columnDefinitions, results = []) => {
+    // console.log(pageId);
+    // console.log(columnDefinitions);
     if (this.pages[pageId] == undefined) {
       await this.loadPageIntoMemory('data', pageId);
     }
@@ -111,6 +113,7 @@ function BufferPool(maxPageCount) {
      */
 
     const serializedRecord = serializeRecord(values, objectsTableDefinition);
+    console.log(serializedRecord);
 
     if (!this.pages[1].hasAvailableSpace(serializedRecord)) {
       throw new Error('Objects page does not have enough space and we cannot do page splits yet');
