@@ -1,7 +1,7 @@
 import BufferPool from '../bufferPool';
 import { generateBlankPage } from '../bufferPool/serializer';
 import { writePageToDisk } from '../storageEngine';
-import { getNewColumnInsertValues } from './columns';
+import { _getNewColumnInsertValues } from './columns';
 
 export const objectsTableDefinition = [
   {
@@ -122,11 +122,14 @@ function initPagesObject(buffer) {
  * @function
  * @param {BufferPool} buffer 
  */
-export function initObjectsTableDefinition(buffer) {
-  objectsTableDefinition.forEach(def => {
-    const values = getNewColumnInsertValues(buffer, 2, def.dataType, def.isVariable, def.isNullable, def.maxLength, def.name, def.order);
+export function initObjectsTableDefinition(buffer, startingColumnId) {
+  let columnId = startingColumnId;
 
-    buffer.executeSystemColumnInsert('columns', values);
+  objectsTableDefinition.forEach((def) => {
+    const values = _getNewColumnInsertValues(columnId, 2, def.dataType, def.isVariable, def.isNullable, def.maxLength, def.name, def.order);
+
+    buffer.executeSystemColumnInsert(values);
+    columnId++;
   });
 }
 
@@ -224,10 +227,9 @@ export async function getTableObjectByName(buffer, schema_name, table_name) {
     }
   ];
 
-  const resultSet = await buffer.scan(1, predicate, []);
+  const resultSet = await buffer.scan(1, predicate, objectsTableDefinition, []);
 
   if (resultSet.length > 1) {
-    console.log(resultSet);
     throw new Error('getTableObjectByName: returned more than one result for schema: ' + schema_name + ' and object: ' + table_name);
   }
 

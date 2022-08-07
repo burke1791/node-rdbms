@@ -1,6 +1,7 @@
 import BufferPool from '../bufferPool';
 import { generateBlankPage } from '../bufferPool/serializer';
 import { writePageToDisk } from '../storageEngine';
+import { getTableObjectByName } from './objects';
 import { getNextSequenceValue } from './sequences';
 
 export const columnsTableDefinition = [
@@ -84,12 +85,63 @@ export async function initializeColumnsTable(buffer) {
  * @function
  * @param {BufferPool} buffer 
  */
- export function initColumnsTableDefinition(buffer) {
-  columnsTableDefinition.forEach(def => {
-    const values = getNewColumnInsertValues(buffer, 4, def.dataType, def.isVariable, def.isNullable, def.maxLength, def.name, def.order);
+ export function initColumnsTableDefinition(buffer, startingColumnId) {
+  let columnId = startingColumnId;
+  columnsTableDefinition.forEach((def) => {
+    const values = _getNewColumnInsertValues(columnId, 4, def.dataType, def.isVariable, def.isNullable, def.maxLength, def.name, def.order);
 
     buffer.executeSystemColumnInsert(values);
+    columnId++;
   });
+}
+
+/**
+ * @function
+ * @param {Number} columnId
+ * @param {Number} parentObjectId 
+ * @param {Number} dataType 
+ * @param {Boolean} isVariable 
+ * @param {Boolean} isNullable 
+ * @param {Number} maxLength 
+ * @param {String} columnName 
+ * @param {Number} columnOrder 
+ * @returns
+ */
+ export function _getNewColumnInsertValues(columnId, parentObjectId, dataType, isVariable, isNullable, maxLength, columnName, columnOrder) {
+  return [
+    {
+      name: 'column_id',
+      value: columnId
+    },
+    {
+      name: 'parent_object_id',
+      value: parentObjectId
+    },
+    {
+      name: 'data_type',
+      value: dataType
+    },
+    {
+      name: 'is_variable',
+      value: isVariable
+    },
+    {
+      name: 'is_nullable',
+      value: isNullable
+    },
+    {
+      name: 'max_length',
+      value: maxLength
+    },
+    {
+      name: 'column_name',
+      value: columnName
+    },
+    {
+      name: 'column_order',
+      value: columnOrder
+    }
+  ];
 }
 
 /**
@@ -104,8 +156,8 @@ export async function initializeColumnsTable(buffer) {
  * @param {Number} columnOrder 
  * @returns
  */
-export function getNewColumnInsertValues(buffer, parentObjectId, dataType, isVariable, isNullable, maxLength, columnName, columnOrder) {
-  const nextSequenceValue = getNextSequenceValue(buffer, 4);
+export async function getNewColumnInsertValues(buffer, parentObjectId, dataType, isVariable, isNullable, maxLength, columnName, columnOrder) {
+  const nextSequenceValue = await getNextSequenceValue(buffer, 4);
 
   return [
     {
@@ -141,4 +193,77 @@ export function getNewColumnInsertValues(buffer, parentObjectId, dataType, isVar
       value: columnOrder
     }
   ];
+}
+
+/**
+ * @function
+ * @param {BufferPool} buffer 
+ * @param {String} schemaName 
+ * @param {String} tableName
+ * @returns {Array<ColumnDefinition>}
+ */
+export function getColumnDefinitionsByName(buffer, schemaName, tableName) {
+  const tableObject = getTableObjectByName(buffer, schemaName, tableName);
+  const tableObjectId = tableObject.find(col => col.name.toLowerCase() === 'object_id');
+
+  return getColumnDefinitionsByTableObjectId(buffer, tableObjectId);
+}
+
+/**
+ * @function
+ * @param {BufferPool} buffer 
+ * @param {Number} objectId 
+ * @returns {Array<ColumnDefinition>}
+ */
+export async function getColumnDefinitionsByTableObjectId(buffer, tableObjectId) {
+  const predicate = [
+    {
+      colName: 'parent_object_id',
+      colValue: tableObjectId 
+    }
+  ];
+
+  const resultSet = await buffer.scan(3, predicate, columnsTableDefinition, []);
+
+  const columnDefinitions = [];
+
+  resultSet.forEach(row => {
+    columnDefinitions.push(parseColumnDefinition(row));
+  });
+
+  return columnDefinitions;
+}
+
+/**
+ * @function
+ * @param {Array<ResultCell>} resultColumns 
+ * @returns {ColumnDefinition}
+ */
+function parseColumnDefinition(resultColumns) {
+  const def = {};
+
+  resultColumns.forEach(col => {
+    switch (col.name) {
+      case 'data_type':
+        def.dataType = col.value;
+        break;
+      case 'is_variable':
+        def.isVariable = col.value;
+        break;
+      case 'is_nullable':
+        def.isNullable = col.value;
+        break;
+      case 'max_length':
+        def.maxLength = col.value;
+        break;
+      case 'column_name':
+        def.name = col.value;
+        break;
+      case 'column_order':
+        def.order = col.value;
+        break;
+    }
+  });
+
+  return def;
 }

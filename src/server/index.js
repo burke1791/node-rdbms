@@ -31,9 +31,10 @@ async function start() {
     await initializeSequencesTable(buffer);
     await initializeColumnsTable(buffer);
     
-    initObjectsTableDefinition(buffer);
-    initSequencesTableDefinition(buffer);
-    initColumnsTableDefinition(buffer);
+    initObjectsTableDefinition(buffer, 1);
+    await buffer.flushPageToDisk(1);
+    initSequencesTableDefinition(buffer, 8);
+    initColumnsTableDefinition(buffer, 12);
 
     await buffer.flushAll();
   }

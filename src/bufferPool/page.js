@@ -1,6 +1,6 @@
 import { EMPTY_SPACE_CHAR, PAGE_HEADER_SIZE, PAGE_SIZE } from '../utilities/constants';
 import { padNumber } from '../utilities/helper';
-import { getFixedColumnValueIndexes, getFixedLengthColumnValue, getFixedLengthNullValue, getHeaderValue, getVariableColumnLength, getVariableLengthColumnOffset, getVariableLengthColumnValue, getVariableLengthNullValue } from './deserializer';
+import { deserializeRecord, getFixedColumnValueIndexes, getFixedLengthColumnValue, getFixedLengthNullValue, getHeaderValue, getVariableColumnLength, getVariableLengthColumnOffset, getVariableLengthColumnValue, getVariableLengthNullValue } from './deserializer';
 import { validateInsertValues, updatePageHeader, serializeRecord, fillInEmptyPageSpace } from './serializer';
 
 /**
@@ -8,8 +8,6 @@ import { validateInsertValues, updatePageHeader, serializeRecord, fillInEmptyPag
  */
 function Page() {
 
-  // this.tableName = tableDefinition.name;
-  // this.columnDefinitions = tableDefinition.columns;
   this.pageSize = PAGE_SIZE;
   this.recordCount = 0;
   this.firstFreeData = PAGE_HEADER_SIZE;
@@ -27,67 +25,6 @@ function Page() {
       const slotArrStart = PAGE_SIZE - (this.recordCount * 4);
       this.slotArray = this.data.substring(slotArrStart, PAGE_SIZE);
     }
-  }
-
-  this.deserializeRow = (recordIndex) => {
-    const fixedLengthDefinitions = this.columnDefinitions.filter(def => {
-      return !def.isVariable;
-    });
-    fixedLengthDefinitions.sort((a, b) => a.order - b.order);
-
-    const variableLengthDefinitions = this.columnDefinitions.filter(def => {
-      return def.isVariable;
-    });
-    variableLengthDefinitions.sort((a, b) => a.order - b.order);
-
-    const numFixed = fixedLengthDefinitions.length;
-    const numVariable = variableLengthDefinitions.length;
-
-    const nullBitmapOffset = this.data.substring(recordIndex, recordIndex + 4);
-    const nullBitmapStart = recordIndex + Number(nullBitmapOffset);
-    const nullBitmapSize = Number(this.data.substring(nullBitmapStart, nullBitmapStart + 2));
-    const nullBitmapEnd = nullBitmapStart + nullBitmapSize;
-    const nullBitmap = this.data.substring(nullBitmapStart, nullBitmapEnd);
-    const nullBitmapColumns = nullBitmap.substring(2).split('');
-
-    const varOffsetEnd = nullBitmapEnd + 2 + (4 * numVariable);
-
-    const varOffsetArray = this.data.substring(nullBitmapEnd, varOffsetEnd);
-    const varOffsetColumns = varOffsetArray.substring(2).match(/[\s\S]{1,4}/g);
-
-    const columns = [];
-    let colNum = 1;
-
-    for (let i = 0; i < nullBitmapColumns.length; i++) {
-      if (nullBitmapColumns[i] == '1' && colNum > numFixed) {
-        const val = getVariableLengthNullValue(colNum - numFixed, variableLengthDefinitions);
-        columns.push(val);
-      } else if (nullBitmapColumns[i] == '1') {
-        const val = getFixedLengthNullValue(colNum, fixedLengthDefinitions);
-        columns.push(val);
-      } else if (colNum > numFixed) {
-        // variable length columns
-        const offset = getVariableLengthColumnOffset(colNum - numFixed, varOffsetColumns);
-        const colLength = getVariableColumnLength(colNum - numFixed, 
-        varOffsetColumns);
-        const colStart = varOffsetEnd + offset - colLength;
-        const col = this.data.substring(colStart, colStart + colLength);
-        const val = getVariableLengthColumnValue(colNum - numFixed, variableLengthDefinitions, col);
-        columns.push(val);
-      } else {
-        // fixed length columns
-        const [colStart, colEnd] = getFixedColumnValueIndexes(colNum, fixedLengthDefinitions);
-        const col = this.data.substring(colStart + recordIndex, colEnd + recordIndex);
-        const val = getFixedLengthColumnValue(colNum, fixedLengthDefinitions, col);
-        columns.push(val);
-      }
-
-      colNum++;
-    }
-
-    columns.sort((a, b) => a.order - b.order);
-
-    return columns;
   }
 
   this.fillInEmptySpace = (recordData) => {
@@ -130,15 +67,16 @@ function Page() {
   /**
    * @method
    * @param {Array<SimplePredicate>} [predicate]
+   * @param {Array<ColumnDefinition>} columnDefinitions
    * @returns {Array<Array<ResultCell>>}
    */
-  this.select = (predicate = []) => {
+  this.select = (predicate = [], columnDefinitions) => {
     const records = [];
 
     const slotArr = this.slotArray.match(/[\s\S]{1,4}/g) || [];
     for (let i = slotArr.length - 1; i >= 0; i--) {
       let recordIndex = Number(slotArr[i]);
-      records.push(this.deserializeRow(recordIndex));
+      records.push(deserializeRecord(recordIndex, this.data, columnDefinitions));
     }
 
     let resultset;
@@ -160,18 +98,6 @@ function Page() {
     }
 
     return resultset;
-  }
-
-  this.selectAll = () => {
-    const records = [];
-
-    const slotArr = this.slotArray.match(/[\s\S]{1,4}/g) || [];
-    for (let i = slotArr.length - 1; i >= 0; i--) {
-      let recordIndex = Number(slotArr[i]);
-      records.push(this.deserializeRow(recordIndex));
-    }
-
-    return records;
   }
 
   this.hasAvailableSpace = (record) => {

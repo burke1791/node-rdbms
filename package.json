@@ -6,7 +6,8 @@
   "scripts": {
     "test": "jest",
     "build": "webpack",
-    "start": "webpack && node dist/server.bundle.js start"
+    "start": "webpack && node dist/server.bundle.js start",
+    "start-clean": "rm -rf ./dist/data && webpack && node dist/server.bundle.js start"
   },
   "repository": {
     "type": "git",

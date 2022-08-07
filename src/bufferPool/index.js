@@ -1,5 +1,5 @@
 import { writePageToDisk, readPageFromDisk } from '../storageEngine';
-import { columnsTableDefinition } from '../system/columns';
+import { columnsTableDefinition, getColumnDefinitionsByTableObjectId } from '../system/columns';
 import { getTableObjectByName, objectsTableDefinition } from '../system/objects';
 import { sequencesTableDefinition } from '../system/sequences';
 import { isDuplicateKey } from './constraints';
@@ -29,7 +29,7 @@ function BufferPool(maxPageCount) {
 
   this.flushPageToDisk = async (pageId) => {
     const page = this.pages[pageId];
-    const isWritten = writePageToDisk('data', page.data);
+    const isWritten = await writePageToDisk('data', page.data);
 
     if (!isWritten) {
       console.log('Error writing pageId: ' + pageId);
@@ -41,7 +41,7 @@ function BufferPool(maxPageCount) {
 
     for (let pageId of pageIds) {
       const page = this.pages[pageId];
-      const isWritten = writePageToDisk('data', page.data);
+      const isWritten = await writePageToDisk('data', page.data);
 
       if (!isWritten) {
         console.log('Error writing pageId: ' + pageId);
@@ -53,10 +53,11 @@ function BufferPool(maxPageCount) {
    * @method
    * @param {Number} pageId 
    * @param {Array<SimplePredicate>} predicate
+   * @param {Array<ColumnDefinition>} columnDefinitions
    * @param {Array<Array<ResultCell>>} [results]
    * @returns {{Array<Array<ResultCell>>}}
    */
-  this.scan = async (pageId, predicate, results = []) => {
+  this.scan = async (pageId, predicate, columnDefinitions, results = []) => {
     if (this.pages[pageId] == undefined) {
       await this.loadPageIntoMemory('data', pageId);
     }
@@ -66,7 +67,7 @@ function BufferPool(maxPageCount) {
     if (getHeaderValue('pageType', page.header) == '2') {
       throw new Error('Index pages are not supported yet!');
     } else {
-      results.push(...page.select(predicate));
+      results.push(...page.select(predicate, columnDefinitions));
       return results;
     }
   }
@@ -84,15 +85,18 @@ function BufferPool(maxPageCount) {
       2. Scan the page for records while evaluating the predicate
     */
 
-    let rootPageId = 1;
-    let results = [];
-  
-    if (schemaName != 'sys' && tableName != 'objects') {
-      const objectRecord = getTableObjectByName(this, schemaName, tableName);
-      rootPageId = objectRecord.find(col => col.name.toLowerCase() === 'root_page_id').value;
-    }
+    const objectRecord = await getTableObjectByName(this, schemaName, tableName);
+    const rootPageId = objectRecord.find(col => col.name.toLowerCase() === 'root_page_id').value;
+    const tableObjectId = objectRecord.find(col => col.name.toLowerCase() === 'object_id').value;
+
+    const columnDefinitions = await getColumnDefinitionsByTableObjectId(this, tableObjectId);
+
+    // console.log(schemaName);
+    // console.log(tableName);
+    // console.log(tableObjectId);
+    // console.log(columnDefinitions);
     
-    results = await this.scan(rootPageId, predicate, results);
+    const results = await this.scan(rootPageId, predicate, columnDefinitions, results);
 
     return results;
   }

@@ -19,9 +19,9 @@ When the DB is started for the first time, it will need to create a number of sy
   - pages (initial `next_sequence_value` = 4)
   - objects (initial `next_sequence_value` = 5)
   - sequences (initial `next_sequence_value` = 5)
-  - columns (initial `next_sequence_value` = 1)
+  - columns (initial `next_sequence_value` = 20)
 1. Create pageId 3, which contains the system `sequences` table
-1. Insert records in the `columns` table for each of the columns in the `objects`, `sequences`, and `columns` system tables, using the `next_sequence_value` of the `objects` table
+1. Insert records in the `columns` table for each of the columns in the `objects`, `sequences`, and `columns` system tables, hard-coding the `column_id` values
 
 ## System Tables
 

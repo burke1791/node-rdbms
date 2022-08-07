@@ -102,7 +102,6 @@ export function getNullBitmapAndNullBitmapOffset(values, definitions) {
  */
 export function validateInsertValues(values, definitions) {
   let isValid = true;
-  console.log(values);
   for (let def of definitions) {
     const val = values.find(value => value.name.toLowerCase() === def.name.toLowerCase());
     isValid = validateDataType(val.value, def.dataType, def.isNullable, def.maxLength);

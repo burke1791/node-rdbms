@@ -2,6 +2,84 @@ import { Int, SmallInt, TinyInt, BigInt, Bit, Char } from '../dataTypes';
 
 /**
  * @function
+ * @param {Number} recordIndex 
+ * @param {String} pageData 
+ * @param {Array<ColumnDefinition>} columnDefinitions 
+ * @returns {Array<ResultCell>}
+ */
+export function deserializeRecord(recordIndex, pageData, columnDefinitions) {
+  // console.log(columnDefinitions);
+  const fixedLengthDefinitions = columnDefinitions.filter(def => {
+    return !def.isVariable;
+  });
+  fixedLengthDefinitions.sort((a, b) => a.order - b.order);
+
+  const variableLengthDefinitions = columnDefinitions.filter(def => {
+    return def.isVariable;
+  });
+  variableLengthDefinitions.sort((a, b) => a.order - b.order);
+
+  const numFixed = fixedLengthDefinitions.length;
+  const numVariable = variableLengthDefinitions.length;
+
+  const nullBitmapOffset = pageData.substring(recordIndex, recordIndex + 4);
+  const nullBitmapStart = recordIndex + Number(nullBitmapOffset);
+  const nullBitmapSize = Number(pageData.substring(nullBitmapStart, nullBitmapStart + 2));
+  const nullBitmapEnd = nullBitmapStart + nullBitmapSize;
+  const nullBitmap = pageData.substring(nullBitmapStart, nullBitmapEnd);
+  const nullBitmapColumns = nullBitmap.substring(2).split('');
+
+  const varOffsetEnd = nullBitmapEnd + 2 + (4 * numVariable);
+
+  const varOffsetArray = pageData.substring(nullBitmapEnd, varOffsetEnd);
+  const varOffsetColumns = varOffsetArray.substring(2).match(/[\s\S]{1,4}/g);
+
+  const columns = [];
+  let colNum = 1;
+
+  for (let i = 0; i < nullBitmapColumns.length; i++) {
+    if (nullBitmapColumns[i] == '1' && colNum > numFixed) {
+      const val = getVariableLengthNullValue(colNum - numFixed, variableLengthDefinitions);
+      columns.push(val);
+    } else if (nullBitmapColumns[i] == '1') {
+      const val = getFixedLengthNullValue(colNum, fixedLengthDefinitions);
+      columns.push(val);
+    } else if (colNum > numFixed) {
+      // variable length columns
+      const offset = getVariableLengthColumnOffset(colNum - numFixed, varOffsetColumns);
+      const colLength = getVariableColumnLength(colNum - numFixed, 
+      varOffsetColumns);
+      const colStart = varOffsetEnd + offset - colLength;
+      const col = pageData.substring(colStart, colStart + colLength);
+      const val = getVariableLengthColumnValue(colNum - numFixed, variableLengthDefinitions, col);
+      columns.push(val);
+    } else {
+      // fixed length columns
+      const [colStart, colEnd] = getFixedColumnValueIndexes(colNum, fixedLengthDefinitions);
+      const col = pageData.substring(colStart + recordIndex, colEnd + recordIndex);
+      const val = getFixedLengthColumnValue(colNum, fixedLengthDefinitions, col);
+      columns.push(val);
+    }
+
+    colNum++;
+  }
+
+  columns.sort((a, b) => a.order - b.order);
+
+  return columns;
+}
+
+/**
+ * @function
+ * @param {Number} pageId
+ * @returns {Number}
+ */
+function getRootPageId(pageData) {
+
+}
+
+/**
+ * @function
  * @param {Number} colNum 
  * @param {Array<String>} offsetArr 
  * @returns {Number}

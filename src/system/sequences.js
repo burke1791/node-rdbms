@@ -1,6 +1,7 @@
 import BufferPool from '../bufferPool';
 import { generateBlankPage } from '../bufferPool/serializer';
 import { writePageToDisk } from '../storageEngine';
+import { getNewColumnInsertValues, _getNewColumnInsertValues } from './columns';
 
 export const sequencesTableDefinition = [
   {
@@ -68,7 +69,7 @@ function initPagesSequence(buffer) {
  * @param {BufferPool} buffer 
  */
 function initObjectsSequence(buffer) {
-  const insertValues = getNewSequenceInsertValues(2, 2, 4, 1);
+  const insertValues = getNewSequenceInsertValues(2, 2, 5, 1);
 
   buffer.executeSystemSequenceInsert(insertValues);
 }
@@ -78,7 +79,7 @@ function initObjectsSequence(buffer) {
  * @param {BufferPool} buffer 
  */
  function initSequencesSequence(buffer) {
-  const insertValues = getNewSequenceInsertValues(3, 3, 4, 1);
+  const insertValues = getNewSequenceInsertValues(3, 3, 5, 1);
 
   buffer.executeSystemSequenceInsert(insertValues);
 }
@@ -88,7 +89,7 @@ function initObjectsSequence(buffer) {
  * @param {BufferPool} buffer 
  */
  function initColumnsSequence(buffer) {
-  const insertValues = getNewSequenceInsertValues(4, 4, 1, 1);
+  const insertValues = getNewSequenceInsertValues(4, 4, 20, 1);
 
   buffer.executeSystemSequenceInsert(insertValues);
 }
@@ -97,11 +98,13 @@ function initObjectsSequence(buffer) {
  * @function
  * @param {BufferPool} buffer 
  */
-export function initSequencesTableDefinition(buffer) {
-  sequencesTableDefinition.forEach(def => {
-    const values = getNewColumnInsertValues(buffer, 3, def.dataType, def.isVariable, def.isNullable, def.maxLength, def.name, def.order);
+export function initSequencesTableDefinition(buffer, startingColumnId) {
+  let columnId = startingColumnId;
+  sequencesTableDefinition.forEach((def) => {
+    const values = _getNewColumnInsertValues(columnId, 3, def.dataType, def.isVariable, def.isNullable, def.maxLength, def.name, def.order);
 
     buffer.executeSystemColumnInsert(values);
+    columnId++;
   });
 }
 
@@ -132,7 +135,7 @@ function getNewSequenceInsertValues(sequenceId, objectId, nextSequenceValue, seq
  * @param {Number} objectId
  * @returns {Number}
  */
-export function getNextSequenceValue(buffer, objectId) {
+export async function getNextSequenceValue(buffer, objectId) {
   const predicate = [
     {
       colName: 'object_id',
@@ -140,7 +143,7 @@ export function getNextSequenceValue(buffer, objectId) {
     }
   ];
 
-  const resultset = buffer.executeSelect('sys', 'sequences', predicate);
+  const resultset = await buffer.executeSelect('sys', 'sequences', predicate);
   const nextSequenceValue = Number(resultset[0].find(col => col.name.toLowerCase() === 'next_sequence_value').value);
   const seqIncrement = Number(resultset[0].find(col => col.name.toLowerCase() === 'sequence_increment').value);
 

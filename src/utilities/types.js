@@ -22,3 +22,13 @@
  * @property {(String|Number|Boolean)} value
  * @property {Number} order
  */
+
+/**
+ * @typedef ColumnDefinition
+ * @property {String} name,
+ * @property {Number} dataType
+ * @property {Boolean} isVariable
+ * @property {Boolean} isNullable
+ * @property {Number} [maxLength]
+ * @property {Number} order
+ */
