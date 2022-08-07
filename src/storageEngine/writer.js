@@ -13,7 +13,7 @@ import { getHeaderValue } from '../bufferPool/deserializer';
 export async function writePageToDisk(filename, data) {
   if (data.length != PAGE_SIZE) throw new Error('Pages must be exactly ' + PAGE_SIZE + ' characters long');
 
-  const filename = path.resolve(__dirname, `data/${filename}.ndb`);
+  const fullFilename = path.resolve(__dirname, `data/${filename}.ndb`);
 
   try {
     let fileData;
@@ -22,8 +22,9 @@ export async function writePageToDisk(filename, data) {
       mkdirSync(path.resolve(__dirname, 'data'));
     }
 
-    if (existsSync(filename)) {
-      const file = await readFile(filename, { encoding: 'utf-8' });
+    if (existsSync(fullFilename)) {
+      console.log('writing to existing file');
+      const file = await readFile(fullFilename, { encoding: 'utf-8' });
       const header = data.substring(0, PAGE_HEADER_SIZE);
       const pageId = getHeaderValue('pageId', header);
       const before = file.substring(0, (pageId - 1) * PAGE_SIZE);
@@ -33,7 +34,7 @@ export async function writePageToDisk(filename, data) {
       fileData = data;
     }
 
-    await writeFile(filename, fileData, { encoding: 'utf-8' });
+    await writeFile(fullFilename, fileData, { encoding: 'utf-8' });
     
     return true;
   } catch (error) {

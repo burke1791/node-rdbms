@@ -5,63 +5,10 @@ import prompts from 'prompts';
 import BufferPool from '../bufferPool';
 import { generateBlankPage } from '../bufferPool/serializer';
 import { fileExists } from '../storageEngine/reader';
-import { initializeObjectsTable } from '../system/objects';
-import { initializeSequencesTable } from '../system/sequences';
+import { initColumnsTableDefinition, initializeColumnsTable } from '../system/columns';
+import { initializeObjectsTable, initObjectsTableDefinition } from '../system/objects';
+import { initializeSequencesTable, initSequencesTableDefinition } from '../system/sequences';
 import { pad } from '../utilities/helper';
-
-const employeeTable = {
-  name: 'Employee',
-  columns: [
-    {
-      name: 'EmployeeId',
-      dataType: 2,
-      isVariable: false,
-      isNullable: false,
-      maxLength: null,
-      order: 1
-    },
-    {
-      name: 'Name',
-      dataType: 6,
-      isVariable: true,
-      isNullable: false,
-      maxLength: 30,
-      order: 2
-    },
-    {
-      name: 'Position',
-      dataType: 5,
-      isVariable: false,
-      isNullable: true,
-      maxLength: 2000,
-      order: 3
-    },
-    {
-      name: 'Salary',
-      dataType: 3,
-      isVariable: false,
-      isNullable: false,
-      maxLength: null,
-      order: 4
-    }
-  ]
-};
-
-const testTable = {
-  name: 'Test',
-  columns: [
-    {
-      name: 'Name',
-      dataType: 5,
-      isVariable: false,
-      isNullable: false,
-      maxLength: 5000,
-      order: 1
-    }
-  ]
-}
-
-const tableDefinition = employeeTable
 
 const buffer = new BufferPool(5)
 
@@ -74,16 +21,25 @@ program.parse();
 async function start() {
   console.log('Starting DB Server...');
 
-  if (!fileExists('data')) {
+  const dataFileExists = await fileExists('data');
+  console.log(dataFileExists);
+
+  if (!dataFileExists) {
     // initialize the DB
     console.log('First startup, initializing DB...');
     await initializeObjectsTable(buffer);
     await initializeSequencesTable(buffer);
+    await initializeColumnsTable(buffer);
     
+    initObjectsTableDefinition(buffer);
+    initSequencesTableDefinition(buffer);
+    initColumnsTableDefinition(buffer);
+
+    await buffer.flushAll();
   }
 
   // loading the first DB page into memory at startup
-  await buffer.loadPageIntoMemory(1);
+  await buffer.loadPageIntoMemory('data', 1);
   
   while (true) {
     const response = await prompts({
@@ -102,13 +58,10 @@ async function start() {
 
     switch (parsedQuery[0]) {
       case 'select':
-        const records = buffer.executeSelect(tableDefinition.name);
+        const { schema, table } = transformSelectInput(response.query);
+        const records = buffer.executeSelect(schema, table, []);
         // console.log(records);
         displayRecords(records);
-        break;
-      case 'insert':
-        const values = transformInsertInput(response.query);
-        buffer.executeInsert(tableDefinition.name, values);
         break;
       default:
         throw new Error('Unhandled query: ' + parsedQuery[0]);
@@ -116,19 +69,11 @@ async function start() {
   }
 }
 
-function transformInsertInput(query) {
+function transformSelectInput(query) {
   const parsedQuery = query.split(' ');
-  const values = [];
-
-  for (let i = 1; i < parsedQuery.length; i++) {
-    const name = tableDefinition.columns[i - 1].name;
-    let value = parsedQuery[i];
-    if (value.trim().toLowerCase() == 'null') value = null;
-
-    values.push({ name: name, value: value });
-  }
-
-  return [values];
+  
+  const [schema, table] = parsedQuery[1].split('.');
+  return { schema, table };
 }
 
 function displayRecords(resultset) {

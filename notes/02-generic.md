@@ -13,12 +13,15 @@ When the DB is started for the first time, it will need to create a number of sy
   - pages
   - objects
   - sequences
+  - columns
 1. Create pageId 2, which contains the system `sequences` table
 1. Insert 3 records into the `sequences` table, hard-coding the `sequence_id` value:
-  - objects (initial `next_sequence_value` = 4)
-  - pages (initial `next_sequence_value` = 3)
-  - sequences (initial `next_sequence_value` = 4)
-1. Insert records in the `objects` table for each of the columns in the `sequences` table, using the `next_sequence_value` of the `objects` table
+  - pages (initial `next_sequence_value` = 4)
+  - objects (initial `next_sequence_value` = 5)
+  - sequences (initial `next_sequence_value` = 5)
+  - columns (initial `next_sequence_value` = 1)
+1. Create pageId 3, which contains the system `sequences` table
+1. Insert records in the `columns` table for each of the columns in the `objects`, `sequences`, and `columns` system tables, using the `next_sequence_value` of the `objects` table
 
 ## System Tables
 
@@ -43,9 +46,7 @@ Create Table sys.objects (
 `object_type_id`: indicates what type of object the record represents:
 - 0=page
 - 1=table
-- 2=column
-- 3=index
-- 4=index key column
+- 2=index
 
 ### Sequences
 
@@ -57,5 +58,20 @@ Create Table sys.sequences (
   [object_id] Int Not Null,
   [next_sequence_value] BigInt Not Null,
   [sequence_increment] Int Not Null
+)
+```
+
+### Columns
+
+```
+Create Table sys.columns (
+  [column_id] Int Identity(1, 1) Not Null,
+  [parent_object_id] Int Not Null,
+  [data_type] SmallInt Not Null,
+  [is_variable] Bit Not Null,
+  [is_nullable] Bit Not Null,
+  [max_length] Int Null,
+  [column_name] Varchar(128) Not Null,
+  [column_order] SmallInt Not Null
 )
 ```

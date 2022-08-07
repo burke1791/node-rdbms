@@ -1,6 +1,7 @@
 import BufferPool from '../bufferPool';
 import { generateBlankPage } from '../bufferPool/serializer';
 import { writePageToDisk } from '../storageEngine';
+import { getNewColumnInsertValues } from './columns';
 
 export const objectsTableDefinition = [
   {
@@ -70,14 +71,11 @@ export async function initializeObjectsTable(buffer) {
   await writePageToDisk('data', blankPage);
   await buffer.loadPageIntoMemory('data', 1);
 
-  // insert a record for the pages object
-  initPagesObject();
-
-  // insert a record for the objects object
-  initObjectsObject();
-
-  // insert a record for the sequences object
-  initSequencesObject();
+  // init hard-coded object records
+  initPagesObject(buffer);
+  initObjectsObject(buffer);
+  initSequencesObject(buffer);
+  initColumnsObject(buffer);
 }
 
 /**
@@ -85,9 +83,9 @@ export async function initializeObjectsTable(buffer) {
  * @param {BufferPool} buffer 
  */
 function initPagesObject(buffer) {
-  const insertValues = getNewObjectInsertValues(1, 0, true, null, 'pages', null, null);
+  const insertValues = _getNewObjectInsertValues(1, 0, true, null, 'pages', null, null);
 
-  buffer.executeInsert('sys', 'objects', [insertValues]);
+  buffer.executeSystemObjectInsert(insertValues);
 }
 
 /**
@@ -95,9 +93,9 @@ function initPagesObject(buffer) {
  * @param {BufferPool} buffer 
  */
  function initObjectsObject(buffer) {
-  const insertValues = getNewObjectInsertValues(2, 1, true, 'sys', 'objects', 1, null);
+  const insertValues = _getNewObjectInsertValues(2, 1, true, 'sys', 'objects', 1, null);
 
-  buffer.executeInsert('sys', 'objects', [insertValues]);
+  buffer.executeSystemObjectInsert(insertValues);
 }
 
 /**
@@ -105,9 +103,31 @@ function initPagesObject(buffer) {
  * @param {BufferPool} buffer 
  */
  function initSequencesObject(buffer) {
-  const insertValues = getNewObjectInsertValues(3, 1, true, 'sys', 'sequences', 2, null);
+  const insertValues = _getNewObjectInsertValues(3, 1, true, 'sys', 'sequences', 2, null);
 
-  buffer.executeInsert('sys', 'objects', [insertValues]);
+  buffer.executeSystemObjectInsert(insertValues);
+}
+
+/**
+ * @function
+ * @param {BufferPool} buffer 
+ */
+ function initColumnsObject(buffer) {
+  const insertValues = _getNewObjectInsertValues(4, 1, true, 'sys', 'columns', 3, null);
+
+  buffer.executeSystemObjectInsert(insertValues);
+}
+
+/**
+ * @function
+ * @param {BufferPool} buffer 
+ */
+export function initObjectsTableDefinition(buffer) {
+  objectsTableDefinition.forEach(def => {
+    const values = getNewColumnInsertValues(buffer, 2, def.dataType, def.isVariable, def.isNullable, def.maxLength, def.name, def.order);
+
+    buffer.executeSystemColumnInsert('columns', values);
+  });
 }
 
 /**
@@ -121,7 +141,7 @@ function initPagesObject(buffer) {
  * @param {Number} parentObjectId 
  * @returns 
  */
-function getNewObjectInsertValues(objectId, objectTypeId, isSystemObject, schemaName, objectName, rootPageId, parentObjectId) {
+function _getNewObjectInsertValues(objectId, objectTypeId, isSystemObject, schemaName, objectName, rootPageId, parentObjectId) {
   return [
     {
       name: 'object_id',
@@ -185,8 +205,31 @@ export async function getObjectById(buffer, objectId) {
  * @function
  * @param {BufferPool} buffer 
  * @param {String} schema_name
- * @param {String} object_name 
+ * @param {String} table_name 
+ * @returns {Array<ResultCell>}
  */
-export async function getObjectByName(buffer, schema_name, object_name) {
+export async function getTableObjectByName(buffer, schema_name, table_name) {
+  const predicate = [
+    {
+      colName: 'schema_name',
+      colValue: schema_name
+    },
+    {
+      colName: 'object_name',
+      colValue: table_name
+    },
+    {
+      colName: 'object_type_id',
+      colValue: 1
+    }
+  ];
 
+  const resultSet = await buffer.scan(1, predicate, []);
+
+  if (resultSet.length > 1) {
+    console.log(resultSet);
+    throw new Error('getTableObjectByName: returned more than one result for schema: ' + schema_name + ' and object: ' + table_name);
+  }
+
+  return resultSet[0];
 }

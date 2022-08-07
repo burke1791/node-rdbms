@@ -5,12 +5,11 @@ import { validateInsertValues, updatePageHeader, serializeRecord, fillInEmptyPag
 
 /**
  * @class
- * @param {Object} tableDefinition
  */
-function Page(tableDefinition) {
+function Page() {
 
-  this.tableName = tableDefinition.name;
-  this.columnDefinitions = tableDefinition.columns;
+  // this.tableName = tableDefinition.name;
+  // this.columnDefinitions = tableDefinition.columns;
   this.pageSize = PAGE_SIZE;
   this.recordCount = 0;
   this.firstFreeData = PAGE_HEADER_SIZE;
@@ -128,14 +127,6 @@ function Page(tableDefinition) {
     this.data = fillInEmptyPageSpace(this.header, allRecordData, this.slotArray);
   }
 
-  this.newRecord = (data) => {
-    const serializedRecord = serializeRecord(data, this.columnDefinitions);
-    
-    if (!validateInsertValues(data, this.columnDefinitions)) throw new Error('Invalid insert values');
-
-    this.addRecordToPage(serializedRecord);
-  }
-
   /**
    * @method
    * @param {Array<SimplePredicate>} [predicate]
@@ -184,8 +175,7 @@ function Page(tableDefinition) {
   }
 
   this.hasAvailableSpace = (record) => {
-    const serializedRecord = serializeRecord(record, this.columnDefinitions);
-    const requiredSpace = serializedRecord.length + 4; // length of the data plus a new slot array entry
+    const requiredSpace = record.length + 4; // length of the data plus a new slot array entry
     const slotArrayStart = PAGE_SIZE - (Number(getHeaderValue('recordCount', this.header) * 4));
     const firstFreeData = Number(getHeaderValue('firstFreeData', this.header));
 

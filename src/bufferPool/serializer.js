@@ -102,6 +102,7 @@ export function getNullBitmapAndNullBitmapOffset(values, definitions) {
  */
 export function validateInsertValues(values, definitions) {
   let isValid = true;
+  console.log(values);
   for (let def of definitions) {
     const val = values.find(value => value.name.toLowerCase() === def.name.toLowerCase());
     isValid = validateDataType(val.value, def.dataType, def.isNullable, def.maxLength);
@@ -120,7 +121,11 @@ export function validateInsertValues(values, definitions) {
  * @returns {Boolean}
  */
 export function validateDataType(value, dataType, isNullable, maxLength) {
-  if (!isNullable && value == null) throw new Error('Value cannot be Null');
+  if (!isNullable && value == null) {
+    throw new Error('Value cannot be Null');
+  } else if (value == null) {
+    return true;
+  }
 
   let colVal;
 
@@ -285,18 +290,18 @@ export function generateBlankPage(fileId, pageId, pageType) {
 }
 
 /**
- * @typedef CellData
- * @property {String} name
- * @property {String|Number} value
- */
-
-/**
  * @function
- * @param {Array<CellData>} values 
+ * @param {Array<ColumnValue>} values 
  * @param {Array<Object>} columnDefinitions
  * @returns {String}
  */
 export function serializeRecord(values, columnDefinitions) {
+  if (!validateInsertValues(values, columnDefinitions)) {
+    console.log(values);
+    console.log(columnDefinitions);
+    throw new Error('Insert values are invalid');
+  }
+
   const [nullBitmap, nullBitmapOffset] = getNullBitmapAndNullBitmapOffset(values, columnDefinitions);
 
   const variableOffsetArray = getVariableOffsetArray(values, columnDefinitions);

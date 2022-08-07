@@ -7,7 +7,7 @@ function SqlNumber(charSize, minVal, maxVal, value) {
   this.charSize = charSize;
   this.minVal = minVal;
   this.maxVal = maxVal;
-  this.value = parseNumberFromPage(value).toFixed(0);
+  this.value = parseNumberFromPage(value)?.toFixed(0);
 
   this.isMatch = (valueToCheck) => {
     return this.value === Number(valueToCheck);

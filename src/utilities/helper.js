@@ -102,6 +102,9 @@ export function fillInEmptyPageSpace(header, recordData = '', slotArray = '') {
  * @returns {Number}
  */
 export function parseNumberFromPage(value) {
+  if (value == null || value == undefined) return null;
+
+  value = String(value);
   // trim leading zeros
   const digits = value.split('');
   let isLeading = true;
