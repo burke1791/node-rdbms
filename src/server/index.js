@@ -58,8 +58,7 @@ async function start() {
       case 'select':
         const { schema, table } = transformSelectInput(response.query);
         const records = await buffer.executeSelect(schema, table, []);
-        console.log(records);
-        // displayRecords(records);
+        displayRecords(records);
         break;
       default:
         throw new Error('Unhandled query: ' + parsedQuery[0]);

@@ -11,7 +11,9 @@
   }
   const numDigits = value.toString().length;
 
-  if (numDigits > length) throw new Error('Number of digits exceeds the allowed length');
+  if (numDigits > length) {
+    throw new Error('Number of digits exceeds the allowed length');
+  }
 
   let str = '' + value;
 

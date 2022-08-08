@@ -296,8 +296,6 @@ export function generateBlankPage(fileId, pageId, pageType) {
  */
 export function serializeRecord(values, columnDefinitions) {
   if (!validateInsertValues(values, columnDefinitions)) {
-    console.log(values);
-    console.log(columnDefinitions);
     throw new Error('Insert values are invalid');
   }
 

@@ -22,8 +22,6 @@ function SqlString(maxLength, isVariable, value) {
     if (valueToCheck == null || valueToCheck == undefined) return true;
 
     if (valueToCheck.length > this.maxLength) {
-      console.log(valueToCheck);
-      console.log(this.maxLength);
       throw new Error('SqlString overflow error');
     }
   }

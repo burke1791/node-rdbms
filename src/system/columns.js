@@ -242,9 +242,6 @@ export async function getColumnDefinitionsByTableObjectId(buffer, tableObjectId)
 function parseColumnDefinition(resultColumns) {
   const def = {};
 
-  console.log('resultColumns');
-  console.log(resultColumns);
-
   resultColumns.forEach(col => {
     switch (col.name) {
       case 'data_type':

@@ -8,8 +8,6 @@ import { Int, SmallInt, TinyInt, BigInt, Bit, Char } from '../dataTypes';
  * @returns {Array<ResultCell>}
  */
 export function deserializeRecord(recordIndex, pageData, columnDefinitions) {
-  console.log('-----------  deserialize start  ------------');
-  console.log(pageData);
   const fixedLengthDefinitions = columnDefinitions.filter(def => {
     return !def.isVariable;
   });
@@ -56,7 +54,7 @@ export function deserializeRecord(recordIndex, pageData, columnDefinitions) {
       columns.push(val);
     } else {
       // fixed length columns
-      const [colStart, colEnd] = getFixedColumnValueIndexes(colNum, fixedLengthDefinitions);
+      const [colStart, colEnd] = getFixedColumnValueIndexes(colNum, fixedLengthDefinitions, nullBitmapColumns);
       const col = pageData.substring(colStart + recordIndex, colEnd + recordIndex);
       const val = getFixedLengthColumnValue(colNum, fixedLengthDefinitions, col);
       columns.push(val);
@@ -68,15 +66,6 @@ export function deserializeRecord(recordIndex, pageData, columnDefinitions) {
   columns.sort((a, b) => a.order - b.order);
 
   return columns;
-}
-
-/**
- * @function
- * @param {Number} pageId
- * @returns {Number}
- */
-function getRootPageId(pageData) {
-
 }
 
 /**
@@ -110,40 +99,42 @@ export function getVariableColumnLength(colNum, offsetArr) {
  * @param {Array<Object>} fixedDefinitions
  * @returns {Array<Number>}
  */
-export function getFixedColumnValueIndexes(colNum, fixedDefinitions) {
+export function getFixedColumnValueIndexes(colNum, fixedDefinitions, nullBitmapColumns) {
   const colIndex = colNum - 1;
   let colStart = 4;
   let size = 0;
 
   for (let i in fixedDefinitions) {
-    switch (fixedDefinitions[i].dataType) {
-      case 0:
-        size = 1;
-        break;
-      case 1:
-        size = 2;
-        break;
-      case 2:
-        size = 4;
-        break;
-      case 3:
-        size = 8;
-        break;
-      case 4:
-        size = 1;
-        break;
-      case 5:
-        size = fixedDefinitions[i].maxLength;
-        break;
-      default:
-        throw new Error(`Unhandled data type: ${fixedDefinitions[i].dataType} in function getNullBitmapAndNullBitmapOffset`);
-    }
+    if (nullBitmapColumns[i] == '0') {
+      switch (fixedDefinitions[i].dataType) {
+        case 0:
+          size = 1;
+          break;
+        case 1:
+          size = 2;
+          break;
+        case 2:
+          size = 4;
+          break;
+        case 3:
+          size = 8;
+          break;
+        case 4:
+          size = 1;
+          break;
+        case 5:
+          size = fixedDefinitions[i].maxLength;
+          break;
+        default:
+          throw new Error(`Unhandled data type: ${fixedDefinitions[i].dataType} in function getNullBitmapAndNullBitmapOffset`);
+      }
 
-    if (i == colIndex) {
-      return [colStart, colStart + size];
-    }
+      if (i == colIndex) {
+        return [colStart, colStart + size];
+      }
 
-    colStart += size;
+      colStart += size;
+    }
   }
 
   throw new Error('Incorrect number of fixed-length columns');
@@ -157,7 +148,9 @@ export function getFixedColumnValueIndexes(colNum, fixedDefinitions) {
  */
 export function getFixedLengthColumnValue(colNum, fixedDefinitions, data) {
   const colIndex = colNum - 1;
-  const { name, dataType, order } = fixedDefinitions[colIndex];
+  const name = fixedDefinitions[colIndex].name;
+  const dataType = fixedDefinitions[colIndex].dataType;
+  const order = fixedDefinitions[colIndex].order
 
   let col;
 
@@ -175,7 +168,8 @@ export function getFixedLengthColumnValue(colNum, fixedDefinitions, data) {
       col = new BigInt(data);
       break;
     case 4:
-      col = new Bit(data);
+      const bool = data == '0' ? false : true;
+      col = new Bit(bool);
       break;
     case 5:
       col = new Char(data);
