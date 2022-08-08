@@ -9,6 +9,7 @@ import { Int, SmallInt, TinyInt, BigInt, Bit, Char } from '../dataTypes';
  */
 export function deserializeRecord(recordIndex, pageData, columnDefinitions) {
   console.log('-----------  deserialize start  ------------');
+  console.log(pageData);
   const fixedLengthDefinitions = columnDefinitions.filter(def => {
     return !def.isVariable;
   });

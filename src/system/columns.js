@@ -225,8 +225,6 @@ export async function getColumnDefinitionsByTableObjectId(buffer, tableObjectId)
 
   const resultSet = await buffer.scan(3, predicate, columnsTableDefinition, []);
 
-  console.log(resultSet);
-
   const columnDefinitions = [];
 
   resultSet.forEach(row => {
@@ -243,6 +241,9 @@ export async function getColumnDefinitionsByTableObjectId(buffer, tableObjectId)
  */
 function parseColumnDefinition(resultColumns) {
   const def = {};
+
+  console.log('resultColumns');
+  console.log(resultColumns);
 
   resultColumns.forEach(col => {
     switch (col.name) {

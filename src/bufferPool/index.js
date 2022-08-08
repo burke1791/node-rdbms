@@ -113,7 +113,7 @@ function BufferPool(maxPageCount) {
      */
 
     const serializedRecord = serializeRecord(values, objectsTableDefinition);
-    console.log(serializedRecord);
+    // console.log(serializedRecord);
 
     if (!this.pages[1].hasAvailableSpace(serializedRecord)) {
       throw new Error('Objects page does not have enough space and we cannot do page splits yet');
@@ -150,6 +150,7 @@ function BufferPool(maxPageCount) {
      */
 
     const serializedRecord = serializeRecord(values, columnsTableDefinition);
+    console.log(serializedRecord);
 
     if (!this.pages[3].hasAvailableSpace(serializedRecord)) {
       throw new Error('Sequences page does not have enough space and we cannot do page splits yet');
