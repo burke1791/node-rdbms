@@ -1,3 +1,5 @@
+import { PAGE_SIZE, EMPTY_SPACE_CHAR } from './constants';
+
 /**
  * Returns a string representation of `value` with leading zeros to fill a string of size `length`
  * @function padNumber
@@ -95,7 +97,7 @@ export function fillInEmptyPageSpace(header, recordData = '', slotArray = '') {
     length = text.length + slotArray.length;
   }
 
-  return text;
+  return text + slotArray;
 }
 
 /**

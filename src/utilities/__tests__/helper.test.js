@@ -1,4 +1,5 @@
-import { pad, padNumber, padStringTrailing } from '../helper';
+import { EMPTY_SPACE_CHAR } from '../constants';
+import { fillInEmptyPageSpace, pad, padNumber, padStringTrailing, parseNumberFromPage } from '../helper';
 
 describe('padNumber', () => {
   test('throws NaN - first input', () => {
@@ -81,5 +82,32 @@ describe('pad', () => {
     expect(() => {
       pad('hello', 5, 'center')
     }).toThrow();
+  });
+});
+
+describe('fillInEmptyPageSpace', () => {
+  let emptySpace = EMPTY_SPACE_CHAR.repeat(8189);
+  let pageData = `12${emptySpace}3`
+
+  test('valid inputs', () => {
+    expect(fillInEmptyPageSpace('1', '2', '3')).toBe(pageData);
+  });
+
+  let data = `123${emptySpace}123`;
+
+  test('inputs too long', () => {
+    expect(() => {
+      fillInEmptyPageSpace('1', data, '123')
+    }).toThrow();
+  });
+});
+
+describe('parseNumberFromPage', () => {
+  test('valid inputs', () => {
+    expect(parseNumberFromPage('0004')).toBe(4);
+  });
+
+  test('null', () => {
+    expect(parseNumberFromPage(null)).toBe(null);
   });
 });
