@@ -97,6 +97,45 @@ function BufferPool(maxPageCount) {
   }
 
   /**
+   * @function
+   * @param {Query} query 
+   * @returns {Array<Array<ResultCell>>}
+   */
+  this.executeQuery = async (query) => {
+    const { schemaName, tableName } = query.from;
+    const predicate = query.where;
+
+    let results;
+
+    switch (query.type) {
+      case 'select':
+        results = await this.executeSelect(schemaName, tableName, predicate);
+        break;
+      default:
+        throw new Error('We only support SELECT queries at the moment');
+        break;
+    }
+
+    // prune columns not defined in the query object
+    if (query.columns[0] != '*') {
+      const prunedResults = results.map(row => {
+        const columns = row.filter(col => {
+          const matchedCol = query.columns.find(name => name === col.name.toLowerCase());
+
+          if (matchedCol == undefined) return false;
+          return true;
+        });
+
+        return columns;
+      });
+
+      return prunedResults;
+    }
+
+    return results;
+  }
+
+  /**
    * @method
    * @param {Array<ColumnValue>}
    */
@@ -149,81 +188,6 @@ function BufferPool(maxPageCount) {
 
     this.pages[3].addRecordToPage(serializedRecord);
   }
-
-  // this.executeSystemInsert = (tableName, records) => {
-  //   records.forEach(record => {
-  //     const pk = Number(record.find(col => col.name.toLowerCase() === 'employeeid').value);
-
-  //     for (let page of this.pages.sys[tableName]) {
-  //       if (isDuplicateKey(page, pk)) {
-  //         console.log('Duplicate key');
-  //         return false;
-  //       }
-  //     }
-
-  //     let page = this.pages.sys[tableName].find(pg => pg.hasAvailableSpace(record));
-
-  //     if (page == undefined) {
-  //       // create a new page
-  //       page = new Page(this.tableDefinition);
-  //       const blankPage = generateBlankPage(1, this.pageCount + 1, 1);
-  //       page.initPageFromDisk(blankPage);
-  //       this.pages[tableName].push(page);
-  //       this.pageCount++;
-  //     }
-
-  //     page.newRecord(record);
-  //   });
-  // }
-
-  // this.executeInsert = (schemaName, tableName, records) => {
-  //   records.forEach(record => {
-  //     const pk = Number(record.find(col => col.name.toLowerCase() === 'employeeid').value);
-
-  //     for (let page of this.pages[tableName]) {
-  //       if (isDuplicateKey(page, pk)) {
-  //         console.log('Duplicate key');
-  //         return false;
-  //       }
-  //     }
-
-  //     let page = this.pages[tableName].find(pg => pg.hasAvailableSpace(record));
-
-  //     if (page == undefined) {
-  //       // create a new page
-  //       page = new Page(this.tableDefinition);
-  //       const blankPage = generateBlankPage(1, this.pageCount + 1, 1);
-  //       page.initPageFromDisk(blankPage);
-  //       this.pages[tableName].push(page);
-  //       this.pageCount++;
-  //     }
-
-  //     page.newRecord(record);
-  //   });
-  // }
-
-  // /**
-  //  * @method
-  //  * @param {String} schemaName
-  //  * @param {String} tableName
-  //  * @param {Array<SimplePredicate>} predicate 
-  //  * @returns {Array<Array<ResultCell>>}
-  //  */
-  // this.executeSelect = (schemaName, tableName, predicate) => {
-  //   // spit out all records only from pages currently in the buffer pool
-  //   let records = [];
-
-  //   this.pages[schemaName][tableName].forEach(page => {
-  //     const resultset = page.select(predicate);
-  //     records.push(...resultset);
-  //   });
-
-  //   return records;
-  // }
-
-  /**
-   * @todo create executeSystemUpdate
-   */
 
 }
 

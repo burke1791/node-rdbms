@@ -32,3 +32,17 @@
  * @property {Number} [maxLength]
  * @property {Number} order
  */
+
+/**
+ * @typedef QueryTable
+ * @property {String} schemaName
+ * @property {String} tableName
+ */
+
+/**
+ * @typedef Query
+ * @property {('select'|'update'|'delete')} type
+ * @property {Array<String>} columns
+ * @property {QueryTable} from
+ * @property {Array<SimplePredicate>} where
+ */

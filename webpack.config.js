@@ -1,4 +1,5 @@
 const path = require('path');
+const nodeExternals = require('webpack-node-externals');
 
 const config = {
   mode: 'production',
@@ -13,6 +14,7 @@ const config = {
     minimize: false
   },
   target: 'node',
+  externals: [nodeExternals()],
   experiments: {
     topLevelAwait: true
   },
