@@ -57,8 +57,6 @@ async function start() {
 
     switch (parsedQuery[0]) {
       case 'select':
-        // const { schema, table } = transformSelectInput(response.query);
-        // const records = await buffer.executeSelect(schema, table, []);
         const tree = parser(response.query);
         console.log(tree);
         const records = await buffer.executeQuery(tree);

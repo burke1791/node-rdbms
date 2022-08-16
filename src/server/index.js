@@ -19,11 +19,11 @@ io.on('connection', socket => {
     socket.emit('pong');
   });
 
-  socket.on('query', async (sql) => {
+  socket.on('QUERY', async (sql) => {
     console.log('received query: ' + sql);
-    const query = parseQuery(sql);
+    const query = parser(sql);
     const records = await buffer.executeQuery(query);
-    socket.emit('query', records);
+    socket.emit('QUERY', records);
   });
 
   socket.on('FETCH_TABLES', async (sql) => {

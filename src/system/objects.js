@@ -212,8 +212,6 @@ export async function getObjectById(buffer, objectId) {
  * @returns {Array<ResultCell>}
  */
 export async function getTableObjectByName(buffer, schema_name, table_name) {
-  console.log('schema: ' + schema_name);
-  console.log('table: ' + table_name);
   const predicate = [
     {
       colName: 'schema_name',
