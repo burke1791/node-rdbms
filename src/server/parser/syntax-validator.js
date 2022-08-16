@@ -1,4 +1,4 @@
-import { normalizeSqlText } from "./parser";
+import { normalizeSqlText } from './normalizeSql';
 
 /**
  * @function
@@ -21,21 +21,37 @@ export function validateSyntax(sql) {
       clause = 'select';
     } else if (word === 'from') {
       clause = 'from';
+    } else if (word === 'where') {
+      clause = 'where';
     } else {
-      switch (clause) {
-        case 'select':
-          isValid = validateSelect(words[i - 1] || null, words[i], words[i + 1] || null);
-          break;
-        case 'from':
-          isValid = validateFrom(words[i - 1] || null, words[i], words[i + 1] || null);
-          break;
-      }
+      isValid = validateSqlClause(clause, words[i - 1] || null, words[i], words[i + 1] || null);
 
       if (!isValid) return false;
     }
   }
 
   return isValid;
+}
+
+/**
+ * @function
+ * @param {String} clause 
+ * @param {String} prev 
+ * @param {String} current 
+ * @param {String} next 
+ * @returns {Boolean}
+ */
+function validateSqlClause(clause, prev, current, next) {
+  switch (clause) {
+    case 'select':
+      return validateSelect(prev, current, next);
+    case 'from':
+      return validateFrom(prev, current, next);
+    case 'where':
+      return validateWhere(prev, current, next);
+    default:
+      return false;
+  }
 }
 
 /**
@@ -86,4 +102,15 @@ function validateFrom(prev, current, next) {
   if (current.match(/[^a-zA-Z0-9_.]/g)?.length > 0) return false;
 
   return true;
+}
+
+/**
+ * @function
+ * @param {String} prev 
+ * @param {String} current 
+ * @param {String} next 
+ * @returns {Boolean}
+ */
+function validateWhere(prev, current, next) {
+  return false;
 }

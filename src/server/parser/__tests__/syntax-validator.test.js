@@ -70,4 +70,9 @@ describe('validateSyntax', () => {
     const query = 'select col1, col2, col3 from sys.objects';
     expect(validateSyntax(query)).toBe(true);
   });
+
+  test('where - good', () => {
+    const query = 'select * from sys.objects where col1 = 1';
+    expect(validateSyntax(query)).toBe(true);
+  });
 });

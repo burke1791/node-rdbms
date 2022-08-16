@@ -1,3 +1,68 @@
+import { SQL_CLAUSES } from '../../utilities/constants';
+import { parseFromNode } from './sqlClauses/from';
+import { normalizeSqlText } from './normalizeSql';
+import { parseSelectResultArray } from './sqlClauses/select';
+import { parseWhereNode } from './sqlClauses/where';
+
+/**
+ * @function
+ * @param {String} sql
+ * @returns {SqlStatementTree}
+ */
+export function parser(sql) {
+  const words = normalizeSqlText(sql);
+
+  const tree = generateSelectTree(words);
+
+  return tree;
+}
+
+/**
+ * @function
+ * @param {Array<String>} words 
+ * @returns {SqlStatementTree}
+ */
+function generateSelectTree(words) {
+  const tree = {
+    type: 'statement',
+    variant: 'select'
+  };
+
+  const resultBegin = 1;
+  const fromIndex = words.indexOf('from');
+  let resultEnd = fromIndex;
+
+  if (resultEnd == -1) resultEnd = words.length;
+
+  tree.result = parseSelectResultArray(words.slice(resultBegin, resultEnd));
+
+  const whereIndex = words.indexOf('where');
+
+  if (fromIndex > 0) {
+    let fromEnd = whereIndex;
+
+    if (fromEnd == -1) fromEnd = words.length;
+
+    tree.from = parseFromNode(words.slice(fromIndex + 1, fromEnd));
+  }
+
+  const groupBy = words.indexOf('group by');
+  const orderBy = words.indexOf('order by');
+
+  if (whereIndex > 0) {
+    let whereEnd = groupBy == -1 ? (orderBy == -1 ? words.length : orderBy) : groupBy;
+
+    tree.where = parseWhereNode(words.slice(whereIndex + 1, whereEnd));
+  }
+
+  return tree;
+}
+
+
+
+
+
+
 
 /**
  * @function
@@ -39,20 +104,6 @@ export function parseQuery(sql) {
   query.where = [];
 
   return query;
-}
-
-/**
- * @function
- * @param {String} sql
- * @returns {Array<String>} 
- */
-export function normalizeSqlText(sql) {
-  // replace newline and tab characters with a space, and replace groups of spaces with a single space
-  const normalizedSql = sql.replace('\n', ' ').replace('\t', ' ').replace(/\s\s+/g, ' ');
-
-  const words = normalizedSql.split(' ');
-
-  return words.map(word => word.toLowerCase());
 }
 
 /**

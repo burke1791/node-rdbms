@@ -1,3 +1,4 @@
+import { filterResults } from '../queryProcessor';
 import { writePageToDisk, readPageFromDisk } from '../storageEngine';
 import { columnsTableDefinition, getColumnDefinitionsByTableObjectId } from '../system/columns';
 import { getTableObjectByName, objectsTableDefinition } from '../system/objects';
@@ -74,6 +75,30 @@ function BufferPool(maxPageCount) {
 
   /**
    * @method
+   * @param {Number} pageId 
+   * @param {Array<SqlWhereNode>} predicate
+   * @param {Array<ColumnDefinition>} columnDefinitions
+   * @param {Array<Array<ResultCell>>} [results]
+   * @returns {{Array<Array<ResultCell>>}}
+   */
+  this.pageScan = async (pageId, where, columnDefinitions, results = []) => {
+    if (this.pages[pageId] == undefined) {
+      await this.loadPageIntoMemory('data', pageId);
+    }
+
+    const page = this.pages[pageId];
+
+    if (getHeaderValue('pageType', page.header) == '2') {
+      throw new Error('Index pages are not supported yet!');
+    } else {
+      results.push(...page.readPage(columnDefinitions));
+      const filteredResults = filterResults(results, where);
+      return filteredResults;
+    }
+  }
+
+  /**
+   * @method
    * @param {String} schemaName 
    * @param {String} tableName 
    * @param {Array<SimplePredicate>} predicate 
@@ -96,20 +121,37 @@ function BufferPool(maxPageCount) {
     return results;
   }
 
+  this.executeSelectQuery = async (from, where) => {
+    /*
+      Currently allowing single-table queries only
+    */
+    
+    const { schemaName, tableName } = from;
+    const objectRecord = await getTableObjectByName(this, schemaName, tableName);
+    const rootPageId = objectRecord.find(col => col.name.toLowerCase() === 'root_page_id').value;
+    const tableObjectId = objectRecord.find(col => col.name.toLowerCase() === 'object_id').value;
+
+    const columnDefinitions = await getColumnDefinitionsByTableObjectId(this, tableObjectId);
+    
+    const results = await this.pageScan(rootPageId, where, columnDefinitions, results);
+
+    return results;
+  }
+
   /**
    * @function
-   * @param {Query} query 
+   * @param {SqlStatementTree} query 
    * @returns {Array<Array<ResultCell>>}
    */
   this.executeQuery = async (query) => {
-    const { schemaName, tableName } = query.from;
-    const predicate = query.where;
+    const predicate = query.where || [];
 
     let results;
 
-    switch (query.type) {
+    // assuming a 'statement' type
+    switch (query.variant) {
       case 'select':
-        results = await this.executeSelect(schemaName, tableName, predicate);
+        results = await this.executeSelectQuery(query.from, predicate);
         break;
       default:
         throw new Error('We only support SELECT queries at the moment');
@@ -117,10 +159,10 @@ function BufferPool(maxPageCount) {
     }
 
     // prune columns not defined in the query object
-    if (query.columns[0] != '*') {
+    if (query.result[0].variant != 'star') {
       const prunedResults = results.map(row => {
         const columns = row.filter(col => {
-          const matchedCol = query.columns.find(name => name === col.name.toLowerCase());
+          const matchedCol = query.result.find(res => res.type == 'identifier' && res.name === col.name.toLowerCase());
 
           if (matchedCol == undefined) return false;
           return true;

@@ -100,6 +100,23 @@ function Page() {
     return resultset;
   }
 
+  /**
+   * @method
+   * @param {Array<ColumnDefinition>} columnDefinitions
+   * @returns {Array<Array<ResultCell>>}
+   */
+  this.readPage = (columnDefinitions) => {
+    const records = [];
+
+    const slotArr = this.slotArray.match(/[\s\S]{1,4}/g) || [];
+    for (let i = slotArr.length - 1; i >= 0; i--) {
+      let recordIndex = Number(slotArr[i]);
+      records.push(deserializeRecord(recordIndex, this.data, columnDefinitions));
+    }
+
+    return records;
+  }
+
   this.hasAvailableSpace = (record) => {
     const requiredSpace = record.length + 4; // length of the data plus a new slot array entry
     const slotArrayStart = PAGE_SIZE - (Number(getHeaderValue('recordCount', this.header) * 4));

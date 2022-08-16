@@ -2,7 +2,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import BufferPool from '../bufferPool';
 import { startup } from './lifecycle';
-import { parseQuery } from './worker/parser';
+import { parseQuery } from './parser';
 
 const PORT = 6969;
 

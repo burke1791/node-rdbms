@@ -35,4 +35,11 @@ const config = {
   }
 }
 
-module.exports = config;
+module.exports = (argv) => {
+  if (argv.usage == 'cli') {
+    config.entry.server = './src/server/index.cli.js';
+    config.output.filename = 'server-cli.bundle.js';
+  }
+
+  return config;
+};

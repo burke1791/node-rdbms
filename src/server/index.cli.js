@@ -8,6 +8,7 @@ import { initColumnsTableDefinition, initializeColumnsTable } from '../system/co
 import { initializeObjectsTable, initObjectsTableDefinition } from '../system/objects';
 import { initializeSequencesTable, initSequencesTableDefinition } from '../system/sequences';
 import { pad } from '../utilities/helper';
+import { parser } from './parser';
 
 const buffer = new BufferPool(5)
 
@@ -56,8 +57,11 @@ async function start() {
 
     switch (parsedQuery[0]) {
       case 'select':
-        const { schema, table } = transformSelectInput(response.query);
-        const records = await buffer.executeSelect(schema, table, []);
+        // const { schema, table } = transformSelectInput(response.query);
+        // const records = await buffer.executeSelect(schema, table, []);
+        const tree = parser(response.query);
+        console.log(tree);
+        const records = await buffer.executeQuery(tree);
         displayRecords(records);
         break;
       default:
