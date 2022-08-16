@@ -2,7 +2,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import BufferPool from '../bufferPool';
 import { startup } from './lifecycle';
-import { parseQuery } from './parser';
+import { parseQuery, parser } from './parser';
 
 const PORT = 6969;
 
@@ -25,6 +25,14 @@ io.on('connection', socket => {
     const records = await buffer.executeQuery(query);
     socket.emit('query', records);
   });
+
+  socket.on('FETCH_TABLES', async (sql) => {
+    console.log('received query: ' + sql);
+    const tree = parser(sql);
+    console.log(tree);
+    const records = await buffer.executeQuery(tree);
+    socket.emit('FETCH_TABLES', records);
+  })
 
   console.log('connection established');
   console.log('connectionId: ' + socket.id);
