@@ -218,6 +218,12 @@ export function getVariableLengthNullValue(colNum, variableDefinitions) {
   };
 }
 
+/**
+ * @function
+ * @param {String} name 
+ * @param {String} header 
+ * @returns {String}
+ */
 export function getHeaderValue(name, header) {
   switch (name) {
     case 'fileId':

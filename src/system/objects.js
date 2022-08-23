@@ -2,6 +2,7 @@ import BufferPool from '../bufferPool';
 import { generateBlankPage } from '../bufferPool/serializer';
 import { writePageToDisk } from '../storageEngine';
 import { _getNewColumnInsertValues } from './columns';
+import sqliteParser from 'sqlite-parser';
 
 export const objectsTableDefinition = [
   {
@@ -9,6 +10,7 @@ export const objectsTableDefinition = [
     dataType: 2,
     isVariable: false,
     isNullable: false,
+    isPrimaryKey: true,
     maxLength: null,
     order: 1
   },
@@ -17,6 +19,7 @@ export const objectsTableDefinition = [
     dataType: 1,
     isVariable: false,
     isNullable: false,
+    isPrimaryKey: false,
     maxLength: null,
     order: 2
   },
@@ -25,6 +28,7 @@ export const objectsTableDefinition = [
     dataType: 4,
     isVariable: false,
     isNullable: false,
+    isPrimaryKey: false,
     maxLength: null,
     order: 3
   },
@@ -33,6 +37,7 @@ export const objectsTableDefinition = [
     dataType: 6,
     isVariable: true,
     isNullable: true,
+    isPrimaryKey: false,
     maxLength: 128,
     order: 4
   },
@@ -41,6 +46,7 @@ export const objectsTableDefinition = [
     dataType: 6,
     isVariable: true,
     isNullable: false,
+    isPrimaryKey: false,
     maxLength: 128,
     order: 5
   },
@@ -49,6 +55,7 @@ export const objectsTableDefinition = [
     dataType: 2,
     isVariable: false,
     isNullable: true,
+    isPrimaryKey: false,
     maxLength: null,
     order: 6
   },
@@ -57,6 +64,7 @@ export const objectsTableDefinition = [
     dataType: 2,
     isVariable: false,
     isNullable: true,
+    isPrimaryKey: false,
     maxLength: null,
     order: 7
   }
@@ -66,10 +74,10 @@ export const objectsTableDefinition = [
  * @function
  * @param {BufferPool} buffer
  */
-export async function initializeObjectsTable(buffer) {
+export function initializeObjectsTable(buffer) {
   const blankPage = generateBlankPage(1, 1, 1);
-  await writePageToDisk('data', blankPage);
-  await buffer.loadPageIntoMemory('data', 1);
+  writePageToDisk('data', blankPage);
+  buffer.loadPageIntoMemory('data', 1);
 
   // init hard-coded object records
   initPagesObject(buffer);
@@ -126,7 +134,7 @@ export function initObjectsTableDefinition(buffer, startingColumnId) {
   let columnId = startingColumnId;
 
   objectsTableDefinition.forEach((def) => {
-    const values = _getNewColumnInsertValues(columnId, 2, def.dataType, def.isVariable, def.isNullable, def.maxLength, def.name, def.order);
+    const values = _getNewColumnInsertValues(columnId, 2, def.dataType, def.isVariable, def.isNullable, def.isPrimaryKey, def.maxLength, def.name, def.order);
 
     buffer.executeSystemColumnInsert(values);
     columnId++;
@@ -144,7 +152,7 @@ export function initObjectsTableDefinition(buffer, startingColumnId) {
  * @param {Number} parentObjectId 
  * @returns 
  */
-function _getNewObjectInsertValues(objectId, objectTypeId, isSystemObject, schemaName, objectName, rootPageId, parentObjectId) {
+export function _getNewObjectInsertValues(objectId, objectTypeId, isSystemObject, schemaName, objectName, rootPageId, parentObjectId) {
   return [
     {
       name: 'object_id',
@@ -191,7 +199,7 @@ export function addObjectsTableRecordToSequencesTable(buffer) {
  * @param {Number} objectId 
  * @returns {<Array<ResultCell>>}
  */
-export async function getObjectById(buffer, objectId) {
+export function getObjectById(buffer, objectId) {
   const predicate = [
     {
       colName: 'object_id',
@@ -199,7 +207,7 @@ export async function getObjectById(buffer, objectId) {
     }
   ];
 
-  const resultset = await buffer.executeSelect('objects', predicate);
+  const resultset = buffer.executeSelect('objects', predicate);
 
   return resultset[0] || undefined;
 }
@@ -211,23 +219,19 @@ export async function getObjectById(buffer, objectId) {
  * @param {String} table_name 
  * @returns {Array<ResultCell>}
  */
-export async function getTableObjectByName(buffer, schema_name, table_name) {
-  const predicate = [
-    {
-      colName: 'schema_name',
-      colValue: schema_name
-    },
-    {
-      colName: 'object_name',
-      colValue: table_name
-    },
-    {
-      colName: 'object_type_id',
-      colValue: 1
-    }
-  ];
+export function getTableObjectByName(buffer, schema_name, table_name) {
+  const query = `
+    Select *
+    From sys.objects
+    Where schema_name = '${schema_name}'
+      And object_name = '${table_name}'
+      And object_type_id = 1
+  `
+  const tree = sqliteParser(query);
 
-  const resultSet = await buffer.scan(1, predicate, objectsTableDefinition, []);
+  const predicate = tree.statement[0].where;
+
+  const resultSet = buffer.pageScan(1, predicate, objectsTableDefinition, []);
 
   if (resultSet.length > 1) {
     throw new Error('getTableObjectByName: returned more than one result for schema: ' + schema_name + ' and object: ' + table_name);

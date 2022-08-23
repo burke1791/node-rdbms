@@ -1,4 +1,4 @@
-import BufferPool from '../../bufferPool';
+import { BufferPool } from '../../bufferPool';
 import { generateBlankPage } from '../../bufferPool/serializer';
 import { writePageToDisk } from '../../storageEngine';
 import { getNewColumnInsertValues, initColumnsTableDefinition, initializeColumnsTable, _getNewColumnInsertValues } from '../columns';
@@ -23,12 +23,12 @@ jest.mock('../../storageEngine', () => {
 });
 
 describe('initializeColumnsTable', () => {
-  test('normal use', async () => {
+  test('normal use', () => {
     const blankPage = generateBlankPage(1, 3, 1);
     const buffer = new BufferPool();
     buffer.loadPageIntoMemory = jest.fn();
 
-    await initializeColumnsTable(buffer);
+    initializeColumnsTable(buffer);
 
     expect(writePageToDisk).toHaveBeenCalledWith('data', blankPage);
     expect(buffer.loadPageIntoMemory).toHaveBeenCalledWith('data', 3);
@@ -88,7 +88,7 @@ describe('_getNewColumnInsertValues', () => {
 });
 
 describe('getNewColumnInsertValues', () => {
-  test('normal use', async () => {
+  test('normal use', () => {
     const buffer = new BufferPool();
 
     const expected = [
@@ -125,7 +125,7 @@ describe('getNewColumnInsertValues', () => {
         value: 5
       }
     ];
-    const actual = await getNewColumnInsertValues(buffer, 2, 1, true, false, 100, 'test', 5);
+    const actual = getNewColumnInsertValues(buffer, 2, 1, true, false, 100, 'test', 5);
 
     expect(actual).toStrictEqual(expected);
     expect(getNextSequenceValue).toHaveBeenCalledWith(buffer, 4);

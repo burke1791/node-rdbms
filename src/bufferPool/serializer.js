@@ -104,7 +104,13 @@ export function validateInsertValues(values, definitions) {
   let isValid = true;
   for (let def of definitions) {
     const val = values.find(value => value.name.toLowerCase() === def.name.toLowerCase());
-    isValid = validateDataType(val.value, def.dataType, def.isNullable, def.maxLength);
+    if (val == undefined && !def.autoIncrement) {
+      isValid = validateDataType(null, def.dataType, def.isNullable, def.maxLength);
+    } else if (val == undefined && def.autoIncrement) {
+      isValid = true;
+    } else {
+      isValid = validateDataType(val.value, def.dataType, def.isNullable, def.maxLength);
+    }
   }
 
   return isValid;

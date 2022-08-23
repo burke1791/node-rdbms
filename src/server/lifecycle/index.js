@@ -1,1 +1,0 @@
-export { startup } from './startup';

@@ -1,1 +1,0 @@
-export { parser, parseQuery } from './parser';

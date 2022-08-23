@@ -29,6 +29,7 @@
  * @property {Number} dataType
  * @property {Boolean} isVariable
  * @property {Boolean} isNullable
+ * @property {Boolean} isPrimaryKey
  * @property {Number} [maxLength]
  * @property {Number} order
  */
