@@ -8,17 +8,36 @@ import Page from './page';
 import { serializeRecord } from './serializer';
 
 /**
- * @class
- * @param {Number} maxPageCount
+ * @typedef StorageEngine
+ * @property {Function} diskWriter function call to write pages to disk
+ * @property {Function} diskReader function call to read pages to disk
  */
-function BufferPool(maxPageCount) {
+
+/**
+ * @typedef BufferPoolConfig
+ * @property {Number} [maxPageCount] simulate DB server memory limit by setting a max number of pages allowed in memory. Default is "unlimited"
+ * @property {StorageEngine} [storage] interface for reading/writing data pages to disk. Defaults to using the local filesystem
+ */
+
+/**
+ * @class
+ * @param {BufferPoolConfig} config
+ */
+function BufferPool(config) {
 
   this.pages = {};
   this.pageCount = 0;
-  this.maxPageCount = maxPageCount;
+  this.maxPageCount = config.maxPageCount || null;
+  this.diskWriter = writePageToDisk;
+  this.diskReader = readPageFromDisk;
+  
+  if (config?.storage?.diskWriter != undefined && config?.storage?.diskReader != undefined) {
+    this.diskWriter = config.storage.diskWriter;
+    this.diskReader = config.storage.diskReader;
+  }
 
   this.loadPageIntoMemory = (filename, pageId) => {
-    const pageData = readPageFromDisk(filename, pageId);
+    const pageData = this.readPageFromDisk(filename, pageId);
     const page = new Page();
 
     page.initPageFromDisk(pageData);
@@ -30,7 +49,7 @@ function BufferPool(maxPageCount) {
   this.flushPageToDisk = (pageId) => {
     console.log('flushing page: ' + pageId);
     const page = this.pages[pageId];
-    const isWritten = writePageToDisk('data', page.data);
+    const isWritten = this.writePageToDisk('data', page.data);
 
     if (!isWritten) {
       console.log('Error writing pageId: ' + pageId);
@@ -42,12 +61,6 @@ function BufferPool(maxPageCount) {
 
     for (let pageId of pageIds) {
       this.flushPageToDisk(pageId);
-      // const page = this.pages[pageId];
-      // const isWritten = writePageToDisk('data', page.data);
-
-      // if (!isWritten) {
-      //   console.log('Error writing pageId: ' + pageId);
-      // }
     }
   }
 
